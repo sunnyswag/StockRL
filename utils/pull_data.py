@@ -20,7 +20,7 @@ class Pull_data():
             使用 Tushare API 下载文件时所需要用到的 tocken
         data_dir : str
             数据存储的目录
-        save_data : bool
+        save_data : boolean
             是否保存数据
     
     Methods
@@ -84,8 +84,8 @@ class Pull_data():
 
         Returns
         -------
-        `pd.DataFrame`
-                7 列: date, tick, open, high, low, close, volume
+            `pd.DataFrame`
+                    7 列: date, tick, open, high, low, close, volume
         """
         data_df = pd.DataFrame()
         stock_num = 0
@@ -118,9 +118,10 @@ class Pull_data():
                 "volume"
             ]
 
-        # 添加 day 列(星期一为 0)，并更改 date 列数据格式
+        # 更改 date 列数据格式, 添加 day 列(星期一为 0), 再将格式改回成 str
         data_df["date"] = data_df.date.apply(lambda x: datetime.strptime(x[:4] + '-' + x[4:6] + '-' + x[6:], "%Y-%m-%d"))
         data_df["day"] = data_df["date"].dt.dayofweek
+        data_df["date"] = data_df.date.apply(lambda x: x.strftime("%Y-%m-%d"))
         # 删除为空的数据行
         data_df = data_df.dropna()
         data_df = data_df.reset_index(drop=True)
