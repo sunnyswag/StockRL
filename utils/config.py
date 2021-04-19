@@ -1,11 +1,25 @@
 """
-    Index_Dic
-    ---------
-        上证 50 : SSE_50
-        沪深 300 : CSI_300
+    SSE_50 : 上证 50
+    CSI_300 : 沪深 300
+
+    Dir_Data : 存放数据的目录
+    Save_Data : 是否保存数据
+    Tushare_Tocken : 使用 Tushare API 下载文件时所需要用到的 tocken
+    Start_Date : 数据开始下载的日期
+    End_Date : 数据截止下载的日期
 """
-Index_Dic = {
-    "SSE_50":[
+
+Dir_Data = "datasets"
+Save_Data = True
+
+Tushare_Tocken = "c576df5b626df4f37c30bae84520d70c7945a394d7ee274ef2685444"
+
+Start_Date = '20090101'
+End_Date = '20210101'
+
+
+
+SSE_50 = [
     "600000.SH",
     "600009.SH",
     "600016.SH",
@@ -55,9 +69,9 @@ Index_Dic = {
     "603259.SH",
     "603288.SH",
     "603501.SH",
-    "603986.SH"],
+    "603986.SH"]
 
-    "CSI_300":[
+CSI_300 = [
     "600000.SH",
     "600004.SH",
     "600009.SH",
@@ -358,4 +372,3 @@ Index_Dic = {
     "300601.SZ",
     "300628.SZ",
     "300676.SZ"]
-}

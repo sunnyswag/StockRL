@@ -11,9 +11,9 @@ os.chdir(path)
 # 创建转换后的目录
 if not os.path.exists(txt_transfer_path):
     os.makedirs(txt_transfer_path)
-    print("创建目录成功!")
+    print("创建 {} 目录成功!".format(txt_transfer_path))
 else:
-    print("目录已存在!")
+    print(" {} 目录已存在!".format(txt_transfer_path))
 
 def transfer(txt_dir, transfer_dir, file_name):
     """使用 transfer 函数将原始股票代码批量修改成可以被 Tushare API 识别的股票代码
