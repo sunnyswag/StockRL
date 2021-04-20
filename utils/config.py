@@ -25,6 +25,38 @@ TECHNICAL_INDICATORS_LIST = [
     "macd","boll_ub","boll_lb","rsi_30", "cci_30", "dx_30","close_20_sma","close_60_sma","close_120_sma"
 ]
 
+# 模型的超参数
+A2C_PARAMS = {
+    "n_steps": 5, 
+    "ent_coef": 0.01, 
+    "learning_rate": 0.0007
+    }
+PPO_PARAMS = {
+    "n_steps": 2048,
+    "ent_coef": 0.01,
+    "learning_rate": 0.00025,
+    "batch_size": 64
+    }
+DDPG_PARAMS = {
+    "batch_size": 128, 
+    "buffer_size": 50000, 
+    "learning_rate": 0.001
+    }
+TD3_PARAMS = {
+    "batch_size": 100, 
+    "buffer_size": 1000000, 
+    "learning_rate": 0.001
+    }
+SAC_PARAMS = {
+    "batch_size": 64,
+    "buffer_size": 100000,
+    "learning_rate": 0.0001,
+    "learning_starts": 100,
+    "ent_coef": "auto_0.1"
+}
+
+TENSORBOARD_LOG_DIR = f"tensorboard_log"
+
 # 上证 50 成分股
 SSE_50 = [
     "600000.SH",

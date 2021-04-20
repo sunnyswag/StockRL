@@ -381,7 +381,23 @@ class Stock_Trading_Env(gym.Env):
         })
 
     def save_action_memory(self):
-        pass
+        if self.multi_stocks:
+            # 让 date 和 close_price 有相同的长度
+            date_list = self.date_memory[:-1]
+            df_date = pd.DataFrame(date_list)
+            df_date.columns = ['date']
+
+            action_list = self.actions_memory
+            df_actions = pd.DataFrame(action_list)
+            df_actions.columns = self.data.tic.values
+            df_actions.index = df_date.date
+        else:
+            date_list = self.date_memory[:-1]
+            action_list = self.actions_memory
+            df_actions = pd.DataFrame({
+                'date': date_list, 'actions':action_list
+            })
+        return df_actions
 
     def _seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
@@ -442,6 +458,6 @@ if __name__ == "__main__":
         if done:             
             break
         count+=1
-        time.sleep(0.2)      #每次等待0.2s
+        time.sleep(0.2)      #每次等待 0.2s
     print("observation: ", observation)
     print("reward: {}, done: {}".format(reward, done))
