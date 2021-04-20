@@ -10,7 +10,7 @@
     CSI_300 : 沪深 300 成分股
 """
 
-Save_Data = True # 是否保存数据
+Save_Data = False # 是否保存数据
 Dir_Data = "datasets" # 存放数据的目录
 
 # 使用 Tushare API 下载文件时所需要用到的 tocken

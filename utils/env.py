@@ -54,10 +54,15 @@ class Stock_Trading_Env(gym.Env):
         model_name = '',
         mode = '',
         iteration = ''
+    
     Methods
     -------
 
-
+    Description
+    -----------
+    # TODO
+    交易环境为：每次从 day 0 训练到 ady -1 ？？？
+    为啥 self.cost 一直为 0
     """
 
     def __init__(self,
@@ -129,8 +134,7 @@ class Stock_Trading_Env(gym.Env):
 
         def _do_sell_normal():
             # 当前股价 > 0 并且 当前有持仓的情况下才可以卖出
-            if self.state[index + 1] > 0 and \
-                    self.state[index + 1 + self.stock_dim] > 0:
+            if self.state[index + 1] > 0 and self.state[index + 1 + self.stock_dim] > 0:
                 sell_num_shares = min(abs(action), self.state[index + 1 + self.stock_dim])
                 # 股价 * 股票数 * (1- 手续费)
                 sell_amount = self.state[index + 1] * sell_num_shares * (1 - self.sell_cost_pct)
@@ -214,7 +218,7 @@ class Stock_Trading_Env(gym.Env):
             df_rewards['date'] = self.date_memory[:-1]
 
             if self.episode % self.print_verbosity == 0:
-                print("天数: {}, episode: {}".format(self.day, self.episode))
+                print("天数: {}天, episode: {}".format(self.day, self.episode))
                 print("开始时的总资产: {}".format(round(self.asset_memory[0], 2)))
                 print("结束时的总资产: {}".format(round(end_total_asset, 2)))
                 print("总奖励值: {}".format(round(total_reward, 2)))
@@ -239,8 +243,7 @@ class Stock_Trading_Env(gym.Env):
             # actions∈[-1, 1], 乘上 hmax 得到实际交易的股票数
             actions = (actions * self.hmax).astype(int)
             
-            if self.turbulence_threshold is not None and \
-                self.turbulence >= self.turbulence_threshold:
+            if self.turbulence_threshold is not None and self.turbulence >= self.turbulence_threshold:
                 actions = np.array([self.hmax * (-1)] * self.stock_dim)
             # 计算初始资产，计算方式：现金 + 持仓的股票市值
             # np.array([]) * np.array([]) 对应的列相乘

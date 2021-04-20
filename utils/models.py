@@ -188,5 +188,5 @@ if __name__ == "__main__":
     trained_sac = agent.train_model(
         model=model_sac,
         tb_log_name='sac', 
-        total_timesteps= 12000
+        total_timesteps= 10000
     )

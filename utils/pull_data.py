@@ -58,8 +58,8 @@ class Pull_data():
         Returns
         -------
         """
-        self.pro = ts.pro_api()
         ts.set_token(self.tushare_tocken)
+        self.pro = ts.pro_api()
 
     def init_dir(self):
         """初始化存储数据的文件目录
@@ -75,7 +75,7 @@ class Pull_data():
                 print("成功创建 {} 目录!".format(self.data_dir))
             else:
                 print(" {} 目录已存在!".format(self.data_dir))
-        os.chdir(self.data_dir)
+            os.chdir(self.data_dir)
     
     def pull_data(self):
         """从 Tushare API 拉取数据
