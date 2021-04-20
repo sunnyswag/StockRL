@@ -17,7 +17,7 @@ class Stock_Trading_Env(gym.Env):
         stock_dim : int
             交易时所涉及到的股票数量
         hmax : int
-
+            可进行交易的最大数量
         initial_amount : int
             初始资金量
         buy_cost_pct : float
@@ -30,8 +30,8 @@ class Stock_Trading_Env(gym.Env):
             状态空间 # TODO
             由四部分组成 : 
                 1、今天的资金量
-                2、今天的收盘价
-                3、昨天的收盘价
+                2、每只股票今天的收盘价
+                3、每只股票当前的持仓量
                 4、股票数*技术指标数
         action_space : int
             交易时所涉及到的股票数量
@@ -109,6 +109,7 @@ class Stock_Trading_Env(gym.Env):
         self.cost = 0
         self.trades = 0
         self.episode = 0
+        self.multi_stocks = len(self.df.tic.unique()) > 1
 
         # 初始化存储数据的 List
         self.asset_memory = [self.initial_amount]
@@ -120,40 +121,233 @@ class Stock_Trading_Env(gym.Env):
         self.data = self.df.loc[self.day, :]
     
     def _sell_stock(self, index, action):
-        pass
+
+        def _do_sell_normal():
+            # 当前股价 > 0 并且 当前有持仓的情况下才可以卖出
+            if self.state[index + 1] > 0 and \
+                    self.state[index + 1 + self.stock_dim] > 0:
+                sell_num_shares = min(abs(action), self.state[index + 1 + self.stock_dim])
+                # 股价 * 股票数 * (1- 手续费)
+                sell_amount = self.state[index + 1] * sell_num_shares * (1 - self.sell_cost_pct)
+                # 更新数据
+                self.state[0] += sell_amount
+                self.state[index + 1 + self.stock_dim] -= sell_num_shares
+                self.cost += self.state[index + 1] * sell_num_shares * self.sell_cost_pct
+                self.trades += 1
+            else :
+                sell_num_shares = 0
+            
+            return sell_num_shares
+        
+        if self.turbulence_threshold is None:
+            sell_num_shares = _do_sell_normal()
+        else:
+            # TODO
+            pass
+        
+        return sell_num_shares
 
     def _buy_stock(self, index, action):
-        pass
+        
+        def _do_buy():
+            # 股价 > 0 时执行买操作
+            if self.state[index + 1] > 0:
+                buy_num_shares = min(self.state[0] // self.state[index + 1], action)
+                buy_amount = self.state[index + 1] * buy_num_shares * (1 - self.buy_cost_pct)
+                # 更新数据
+                self.state[0] -= buy_amount
+                self.state[index + 1 + self.stock_dim] += buy_num_shares
+                self.cost = self.state[index + 1] * buy_num_shares * self.buy_cost_pct
+                self.trades += 1
+            else :
+                buy_num_shares = 0
+            
+            return buy_num_shares
+        
+        if self.turbulence_threshold is None:
+            buy_num_shares = _do_buy()
+        else:
+            if self.turbulence < self.turbulence_threshold:
+                buy_num_shares = _do_buy()
+            else:
+                buy_num_shares = 0
+                pass
+        
+        return buy_num_shares
 
     def _make_plot(self):
-        pass
+        plt.plot(self.asset_memory, 'r')
+        plt.savefig('results/account_value_trade_{}.png'.format(self.episode))
+        plt.close()
 
-    def step(self):
-        pass
+    def step(self, actions):
+        self.terminal = self.day >= len(self.df.index.unique()) - 1
+        if self.terminal:
+            if self.make_plots:
+                self._make_plot()
+            
+            # 计算最终的资产
+            end_total_asset = self.state[0] + \
+                sum(np.array(self.state[1: (self.stock_dim + 1)]) * \
+                    np.array(self.state[(self.stock_dim + 1): (self.stock_dim * 2 + 1)]))
+
+            total_reward = end_total_asset - self.initial_amount
+            # 使用 pd 来存储最终的数据
+            df_total_value = pd.DataFrame(self.asset_memory)
+            df_total_value.columns = ['account_value']
+            
+
+        else:
+            # actions∈[-1, 1], 乘上 hmax 得到实际交易的股票数
+            actions = (actions * self.hmax).astype(int)
+            
+            if self.turbulence_threshold is not None and \
+                self.turbulence >= self.turbulence_threshold:
+                actions = np.array([self.hmax * (-1)] * self.stock_dim)
+            # 计算初始资产，计算方式：现金 + 持仓的股票市值
+            # np.array([]) * np.array([]) 对应的列相乘
+            # 如：np.array([1, 2]) * np.array([1, 2]) = np.array([1, 4])
+            begin_total_asset = self.state[0] + \
+                sum(np.array(self.state[1: (self.stock_dim + 1)]) * \
+                    np.array([self.state[(self.stock_dim + 1): (self.stock_dim * 2 + 1)]]))
+
+            # np.argsort : 按照 index 进行排序
+            # actions : np.array([1,2,5,3,10,8])
+            # arg_actions : array([0, 1, 3, 2, 5, 4], dtype=int64)
+            argsort_actions = np.argsort(actions)
+            mid_index = np.where(actions < 0)[0].shape[0]
+            sell_index = argsort_actions[: mid_index]
+            buy_index = argsort_actions[mid_index:]
+
+            # 执行卖操作
+            for index in sell_index:
+                # 返回值为实际进行买卖的成交量
+                actions[index] = self._sell_stock(index, actions[index]) * (-1)
+
+            # 执行买操作
+            for index in buy_index:
+                # 返回值为实际进行买卖的成交量
+                actions[index] = self._buy_stock(index, actions[index])
+
+            # 计算 reward
+            end_total_asset = self.state[0] + \
+                sum(np.array(self.state[1: (self.stock_dim + 1)]) * \
+                    np.array(self.state[(self.stock_dim + 1): (self.stock_dim * 2 + 1)]))
+            self.reward = end_total_asset - begin_total_asset
+
+            # 添加新数据
+            self.actions_memory.append(actions)
+            self.asset_memory.append(end_total_asset)
+            self.date_memory.append(self._get_date())
+            self.rewards_memory.append(self.reward)
+            
+            # 更新 day 和 state
+            self.day += 1
+            self.data = self.df.loc[self.day, :]
+            if self.turbulence_threshold is not None:
+                self.turbulence = self.data['turbulence'].value[0]
+            self.state = self._update_state()
+
+            self.reward = self.reward * self.reward_scaling
+        
+        return self.state, self.reward, self.terminal, {}
 
     def reset(self):
-        pass
+        self.state = self._initiate_state()
+
+        if self.initial:
+            self.asset_memory = [self.initial_amount]
+        else:
+            previous_total_asset = self.previous_state[0] +\
+                sum(np.array(self.state[1:(self.stock_dim + 1)]) * \
+                    np.array(self.previous_state[(self.stock_dim + 1) : (self.stock_dim * 2 + 1)]))
+            self.asset_memory = [previous_total_asset]
+
+        self.day = 0
+        self.data = self.df.loc[self.day, :]
+        self.turbulence = 0
+        self.cost = 0
+        self.trades = 0
+        self.terminal = False
+        self.rewards_memory = []
+        self.actions_memory = []
+        self.date_memory = [self._get_date()]
+
+        self.episode += 1
+
+        return self.state
 
     def render(self):
-        pass
+        return self.state
 
     def _initiate_state(self):
-        pass
+        # 初始化数据
+        if self.initial:
+            # 多只股票
+            if self.multi_stocks:
+                state = [self.initial_amount] + \
+                        self.data.close.values.tolist() + \
+                        [0] * self.stock_dim + \
+                        sum([self.data[tech].values.tolist() for tech in self.tech_indicator_list], [])
+                        # sum([[1, 2], [3, 4]] ,[]) = [1, 2, 3, 4]
+            # 单只股票
+            else:
+                state = [self.initial_amount] + \
+                        [self.data.close] + \
+                        [0] * self.stock_dim + \
+                        sum([[self.data[tech]] for tech in self.tech_indicator_list], [])
+        # 使用过去的数据
+        else:
+            # 多只股票
+            if self.multi_stocks:
+                state = [self.previous_state[0]] + \
+                        self.data.close.values.tolist() + \
+                        self.previous_state[(self.stock_dim + 1) : (self.stock_dim * 2 + 1)] + \
+                        sum([self.data[tech].values.tolist() for tech in self.tech_indicator_list], [])
+            # 单只股票
+            else:
+                state = [self.previous_state[0]] + \
+                        [self.data.close] + \
+                        self.previous_state[(self.stock_dim + 1) : (self.stock_dim * 2 + 1)] + \
+                        sum([[self.data[tech]] for tech in self.tech_indicator_list], [])
+
+        return state
 
     def _update_state(self):
-        pass
+        if self.multi_stocks:
+            # 持仓量和现金数在进行交易的时候已经更新了
+            state = [self.state[0]] + \
+                    self.data.close.values.tolist() + \
+                    list(self.state[(self.stock_dim + 1): (self.stock_dim * 2 + 1)]) + \
+                    sum([self.data[tech].values.tolist() for tech in self.tech_indicator_list], [])
+        else:
+            state = [self.state[0]] + \
+                    [self.data.close] + \
+                    list(self.state[(self.stock_dim + 1): (self.stock_dim * 2 + 1)]) + \
+                    sum([[self.data[tech]] for tech in self.tech_indicator_list], [])
+        
+        return state
 
     def _get_date(self):
-        pass
+        if self.multi_stocks:
+            date = self.data.date.unique()[0]
+        else:
+            date = self.data.date
+        
+        return date
 
     def save_asset_memory(self):
-        pass
+        return pd.DataFrame({
+            'date': self.date_memory,
+            'account_value': self.asset_memory
+        })
 
     def save_action_memory(self):
         pass
 
     def _seed(self, seed=None):
-        pass
+        self.np_random, seed = seeding.np_random(seed)
+        return [seed]
 
     def get_sb_env(self):
         pass
