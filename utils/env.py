@@ -7,7 +7,11 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import pickle
+from stable_baselines3.common.vec_env import DummyVecEnv
+from stable_baselines3.common import logger
 
+# TODO 
+# add Readme and description
 class Stock_Trading_Env(gym.Env):
     """构建股票交易环境的类，继承自 gym.Env
     Attributes
@@ -25,7 +29,7 @@ class Stock_Trading_Env(gym.Env):
         sell_cost_pct : float
             卖股票时的手续费
         reward_scaling : float
-
+            reward * reward_scaling 再输入到 model 中
         state_space : int
             状态空间 # TODO
             由四部分组成 : 
@@ -77,26 +81,30 @@ class Stock_Trading_Env(gym.Env):
                 mode = '',
                 iteration = ''
     ):
-        self.df = df,
-        self.stock_dim = stock_dim,
-        self.hmax = hmax,
-        self.initial_amount = initial_amount,
-        self.buy_cost_pct = buy_cost_pct,
-        self.sell_cost_pct = sell_cost_pct,
-        self.reward_scaling = reward_scaling,
-        self.state_space = state_space,
-        self.action_space = action_space,
-        self.tech_indicator_list = tech_indicator_list,
-        self.turbulence_threshold = turbulence_threshold,
-        self.make_plots = make_plots,
-        self.print_verbosity = print_verbosity,
-        self.day = day,
+        self.df = df
+        self.stock_dim = stock_dim
+        self.hmax = hmax
+        self.initial_amount = initial_amount
+        self.buy_cost_pct = buy_cost_pct
+        self.sell_cost_pct = sell_cost_pct
+        self.reward_scaling = reward_scaling
+        self.state_space = state_space
+        self.action_space = action_space
+        self.tech_indicator_list = tech_indicator_list
+        self.turbulence_threshold = turbulence_threshold
+        self.make_plots = make_plots
+        self.print_verbosity = print_verbosity
+        self.day = day
         self.initial = initial
-        self.previous_state = previous_state,
-        self.model_name = model_name, 
-        self.mode = mode,
+        self.previous_state = previous_state
+        self.model_name = model_name,
+        self.mode = mode
         self.iteration = iteration
         self.terminal = False
+
+        # 初始化相关的变量
+        self.data = self.df.loc[self.day, :]
+        self.multi_stocks = len(self.df.tic.unique()) > 1
         
         # 初始化 Gym enviroment
         self.action_space = spaces.Box(low=-1, high=1, shape=(self.action_space,))
@@ -109,16 +117,13 @@ class Stock_Trading_Env(gym.Env):
         self.cost = 0
         self.trades = 0
         self.episode = 0
-        self.multi_stocks = len(self.df.tic.unique()) > 1
 
         # 初始化存储数据的 List
         self.asset_memory = [self.initial_amount]
         self.rewards_memory = []
         self.actions_memory = []
         self.date_memory = [self._get_date()]
-
         self._seed()
-        self.data = self.df.loc[self.day, :]
     
     def _sell_stock(self, index, action):
 
@@ -192,10 +197,43 @@ class Stock_Trading_Env(gym.Env):
                     np.array(self.state[(self.stock_dim + 1): (self.stock_dim * 2 + 1)]))
 
             total_reward = end_total_asset - self.initial_amount
-            # 使用 pd 来存储最终的数据
+
+            # 使用 pandas 来存储最终的数据
             df_total_value = pd.DataFrame(self.asset_memory)
             df_total_value.columns = ['account_value']
+            df_total_value['date'] = self.date_memory
+            # pct_change；计算改变的百分比
+            df_total_value['daily_return'] = df_total_value['account_value'].pct_change(1)
+
+            if df_total_value['daily_return'].std() != 0:
+                sharpe = (252 ** 0.5) * df_total_value['daily_return'].mean() /\
+                    df_total_value['daily_return'].std()
             
+            df_rewards = pd.DataFrame(self.rewards_memory)
+            df_rewards.columns = ['account_rewards']
+            df_rewards['date'] = self.date_memory[:-1]
+
+            if self.episode % self.print_verbosity == 0:
+                print("天数: {}, episode: {}".format(self.day, self.episode))
+                print("开始时的总资产: {}".format(round(self.asset_memory[0], 2)))
+                print("结束时的总资产: {}".format(round(end_total_asset, 2)))
+                print("总奖励值: {}".format(round(total_reward, 2)))
+                print("总的手续费: {}".format(round(self.cost, 2)))
+                print("总的交易次数: {}".format(self.trades))
+                if df_total_value['daily_return'].std() != 0:
+                    print("Sharpe: {}".format(round(sharpe, 3)))
+                print("=============================")
+        
+            if self.model_name != '' and self.mode != '':
+                pass
+            
+            logger.record("environment/portfolio_value", end_total_asset)
+            logger.record("environment/total_reward", total_reward)
+            logger.record("environment/total_reward_pct", (total_reward / (end_total_asset - total_reward)) * 100)
+            logger.record("environment/total_cost", self.cost)
+            logger.record("environment/total_trades", self.trades)
+        
+            return self.state, self.reward, self.terminal, {}
 
         else:
             # actions∈[-1, 1], 乘上 hmax 得到实际交易的股票数
@@ -209,7 +247,7 @@ class Stock_Trading_Env(gym.Env):
             # 如：np.array([1, 2]) * np.array([1, 2]) = np.array([1, 4])
             begin_total_asset = self.state[0] + \
                 sum(np.array(self.state[1: (self.stock_dim + 1)]) * \
-                    np.array([self.state[(self.stock_dim + 1): (self.stock_dim * 2 + 1)]]))
+                    np.array(self.state[(self.stock_dim + 1): (self.stock_dim * 2 + 1)]))
 
             # np.argsort : 按照 index 进行排序
             # actions : np.array([1,2,5,3,10,8])
@@ -350,4 +388,60 @@ class Stock_Trading_Env(gym.Env):
         return [seed]
 
     def get_sb_env(self):
-        pass
+        e = DummyVecEnv([lambda: self])
+        obs = e.reset()
+        return e, obs
+
+if __name__ == "__main__":
+    from pull_data import Pull_data
+    from preprocessors import FeatureEngineer, split_data
+    import config
+    import time
+
+    # 拉取数据
+    df = Pull_data(config.SSE_50[:2], save_data=False).pull_data()
+    df = FeatureEngineer().preprocess_data(df)
+    df = split_data(df, '2009-01-01','2019-01-01')
+    print(df.head())
+
+    # 处理超参数
+    stock_dimension = len(df.tic.unique()) # 2
+    state_space = 1 + 2*stock_dimension + \
+        len(config.TECHNICAL_INDICATORS_LIST)*stock_dimension # 23
+    print("stock_dimension: {}, state_space: {}".format(stock_dimension, state_space))
+    env_kwargs = {
+        "stock_dim": stock_dimension, 
+        "hmax": 100, 
+        "initial_amount": 1000000, 
+        "buy_cost_pct": 0.001,
+        "sell_cost_pct": 0.001,
+        "reward_scaling": 1e-4,
+        "state_space": state_space, 
+        "action_space": stock_dimension, 
+        "tech_indicator_list": config.TECHNICAL_INDICATORS_LIST
+    }
+
+    # 测试环境
+    e_train_gym = Stock_Trading_Env(df = df, **env_kwargs)
+
+    ### 测试一次
+    # observation = e_train_gym.reset()
+    # print("reset_observation: ", observation)
+    # action = e_train_gym.action_space.sample()
+    # print("action: ", action)
+    # observation_later, reward, done, _ = e_train_gym.step(action)
+    # print("observation_later: ", observation_later)
+    # print("reward: {}, done: {}".format(reward, done))
+
+    ### 多次测试
+    observation = e_train_gym.reset()       #初始化环境，observation为环境状态
+    count = 0
+    for t in range(10):
+        action = e_train_gym.action_space.sample()  #随机采样动作
+        observation, reward, done, info = e_train_gym.step(action)  #与环境交互，获得下一个state的值
+        if done:             
+            break
+        count+=1
+        time.sleep(0.2)      #每次等待0.2s
+    print("observation: ", observation)
+    print("reward: {}, done: {}".format(reward, done))
