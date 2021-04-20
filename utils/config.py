@@ -20,6 +20,10 @@ Tushare_Tocken = "c576df5b626df4f37c30bae84520d70c7945a394d7ee274ef2685444"
 Start_Date = '20090101'
 End_Date = '20210101'
 
+Start_Trade_Date = "2009-01-01"
+End_Trade_Date = "2019-01-01"
+End_Test_Date = "2021-01-01"
+
 # 技术指标列表
 TECHNICAL_INDICATORS_LIST = [
     "macd","boll_ub","boll_lb","rsi_30", "cci_30", "dx_30","close_20_sma","close_60_sma","close_120_sma"

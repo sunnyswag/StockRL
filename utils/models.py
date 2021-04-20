@@ -42,14 +42,14 @@ class DRL_Agent():
         len_environment = len(environment.df.index.unique())
         for i in range(len_environment):
             action, _states = model.predict(test_obs)
-            test_obs, rewards, dones, info = test_env.step(action)
-            if i == (len_environment - 2)):
+            test_obs, rewards, dones, _ = test_env.step(action)
+            if i == (len_environment - 2):
                 account_memory = test_env.env_method(method_name="save_asset_memory")
                 actions_memory = test_env.env_method(method_name="save_action_memory")
-            if done[0]:
+            if dones[0]:
                 print("完成!")
                 break
-        return account_memory[0], account_memory[0]
+        return account_memory[0], actions_memory[0]
 
     def __init__(self, env):
         self.env = env
@@ -105,17 +105,18 @@ class DRLEnsembleAgent:
     def get_validation_sharpe():
         pass
 
-    def __init__():
+    def __init__(self):
         pass
 
-    def DRL_validation():
+    def DRL_validation(self):
         pass
 
-    def DRL_prediction():
+    def DRL_prediction(self):
         pass
 
-    def run_ensemble_strategy():
+    def run_ensemble_strategy(self):
         pass
 
-def __name__ == "__main__":
+if __name__ == "__main__":
+    pass
     # TODO
