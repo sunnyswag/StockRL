@@ -64,7 +64,8 @@ class Stock_Trading_Env(gym.Env):
     交易环境为：每次从 day 0 训练到 ady -1 ？？？
     Reward 的定义：reward 定义为初始状态-当天交易后的状态，
         Reward 就成了每次交易的手续费，这怎么合理呢（实际测试 Reward == Cost）
-    为啥 self.cost 一直为 0
+        但是 total_reward 的计算方式却是 terminal 时的 总资产 - 起始资金
+        于是训练完成的情况就是买入并持有，交易次数不发生变化
     """
 
     def __init__(self,
