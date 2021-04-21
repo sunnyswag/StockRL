@@ -137,7 +137,7 @@ if __name__ == "__main__":
     env_kwargs = {
         "stock_dim": stock_dimension, 
         "hmax": 100, 
-        "initial_amount": 1000000, 
+        "initial_amount": 1e6, 
         "buy_cost_pct": 0.001,
         "sell_cost_pct": 0.001,
         "reward_scaling": 1e-4,
@@ -188,5 +188,5 @@ if __name__ == "__main__":
     trained_sac = agent.train_model(
         model=model_sac,
         tb_log_name='sac', 
-        total_timesteps= 10000
+        total_timesteps= 20000
     )

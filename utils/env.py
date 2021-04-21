@@ -62,6 +62,8 @@ class Stock_Trading_Env(gym.Env):
     -----------
     # TODO
     交易环境为：每次从 day 0 训练到 ady -1 ？？？
+    Reward 的定义：reward 定义为初始状态-当天交易后的状态，
+        Reward 就成了每次交易的手续费，这怎么合理呢（实际测试 Reward == Cost）
     为啥 self.cost 一直为 0
     """
 
@@ -162,11 +164,11 @@ class Stock_Trading_Env(gym.Env):
             # 股价 > 0 时执行买操作
             if self.state[index + 1] > 0:
                 buy_num_shares = min(self.state[0] // self.state[index + 1], action)
-                buy_amount = self.state[index + 1] * buy_num_shares * (1 - self.buy_cost_pct)
+                buy_amount = self.state[index + 1] * buy_num_shares * (1 + self.buy_cost_pct)
                 # 更新数据
                 self.state[0] -= buy_amount
                 self.state[index + 1 + self.stock_dim] += buy_num_shares
-                self.cost = self.state[index + 1] * buy_num_shares * self.buy_cost_pct
+                self.cost += self.state[index + 1] * buy_num_shares * self.buy_cost_pct
                 self.trades += 1
             else :
                 buy_num_shares = 0
@@ -318,7 +320,7 @@ class Stock_Trading_Env(gym.Env):
 
         return self.state
 
-    def render(self):
+    def render(self, mode='human', close=False):
         return self.state
 
     def _initiate_state(self):
@@ -356,7 +358,7 @@ class Stock_Trading_Env(gym.Env):
 
     def _update_state(self):
         if self.multi_stocks:
-            # 持仓量和现金数在进行交易的时候已经更新了
+            # 现金量和持仓量在进行交易的时候已经更新了
             state = [self.state[0]] + \
                     self.data.close.values.tolist() + \
                     list(self.state[(self.stock_dim + 1): (self.stock_dim * 2 + 1)]) + \
@@ -434,7 +436,7 @@ if __name__ == "__main__":
         "initial_amount": 1000000, 
         "buy_cost_pct": 0.001,
         "sell_cost_pct": 0.001,
-        "reward_scaling": 1e-4,
+        "reward_scaling": 1,
         "state_space": state_space, 
         "action_space": stock_dimension, 
         "tech_indicator_list": config.TECHNICAL_INDICATORS_LIST
@@ -455,12 +457,15 @@ if __name__ == "__main__":
     ### 多次测试
     observation = e_train_gym.reset()       #初始化环境，observation为环境状态
     count = 0
+    total_reward = 0
     for t in range(10):
         action = e_train_gym.action_space.sample()  #随机采样动作
         observation, reward, done, info = e_train_gym.step(action)  #与环境交互，获得下一个state的值
+        total_reward += reward
         if done:             
             break
         count+=1
         time.sleep(0.2)      #每次等待 0.2s
     print("observation: ", observation)
-    print("reward: {}, done: {}".format(reward, done))
+    print("e_train_gym.cost: ", e_train_gym.cost)
+    print("reward: {}, done: {}".format(total_reward, done))
