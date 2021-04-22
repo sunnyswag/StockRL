@@ -35,13 +35,15 @@ class Pull_data():
 
     def __init__(self, ticker_list, start_date = config.Start_Date, end_date = config.End_Date, 
                     tushare_tocken = config.Tushare_Tocken,
-                    data_dir = config.Dir_Data, save_data = config.Save_Data):
+                    data_dir = config.Dir_Data, save_data = config.Save_Data,
+                    pull_index = False):
         self.ticker_list = ticker_list
         self.start_date = start_date
         self.end_date = end_date
         self.tushare_tocken = tushare_tocken
         self.data_dir = data_dir
         self.save_data = save_data
+        self.pull_index = pull_index
 
         self.ticker_len = len(self.ticker_list)
         self.date_time = str(time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime()))
@@ -98,7 +100,10 @@ class Pull_data():
                 print("下载进度 : {}%".format(stock_num / len(self.ticker_list) * 100))
             
             try:
-                data_tmp = ts.pro_bar(ts_code=ticker, adj='qfq', start_date=self.start_date, end_date=self.end_date)
+                if not self.pull_index:
+                    data_tmp = ts.pro_bar(ts_code=ticker, adj='qfq', start_date=self.start_date, end_date=self.end_date)
+                else:
+                    data_tmp = self.pro.index_daily(ts_code=ticker, adj='qfq', start_date=self.start_date, end_date=self.end_date)
                 data_tmp = data_tmp.set_index("trade_date", drop=True) # 将 trade_date 列设为索引
                 data_df = data_df.append(data_tmp)
             except:

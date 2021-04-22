@@ -37,7 +37,7 @@ def backtest_plot(
     account_value,
     baseline_start = config.End_Trade_Date,
     baseline_end = config.End_Test_Date,
-    baseline_ticker = "^DJI",
+    baseline_ticker = config.SSE_50_INDEX,
     value_col_name = "account_value"
 ):
     df = deepcopy(account_value)
@@ -61,7 +61,8 @@ def get_baseline(ticker, start, end):
     baselines = Pull_data(
         ticker_list=ticker,
         start_date=start,
-        end_date=end
+        end_date=end,
+        pull_index=True
     ).pull_data()
     return baselines
 

@@ -61,7 +61,8 @@ SAC_PARAMS = {
 
 TENSORBOARD_LOG_DIR = f"tensorboard_log"
 
-# 上证 50 成分股
+# 上证 50 指数和成分股
+SSE_50_INDEX = ["000016.SH"]
 SSE_50 = [
     "600000.SH",
     "600009.SH",
