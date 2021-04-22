@@ -14,9 +14,9 @@ from stable_baselines3.td3.policies import MlpPolicy
 from stable_baselines3 import SAC
 from stable_baselines3.common.noise import NormalActionNoise, OrnsteinUhlenbeckActionNoise
 
-import config
-from preprocessors import split_data
-from env import Stock_Trading_Env
+from utils import config
+from utils.preprocessors import split_data
+from utils.env import Stock_Trading_Env
 
 MODELS = {"a2c": A2C, "ddpg": DDPG, "td3": TD3, "sac": SAC, "ppo": PPO}
 MODEL_KWARGS = {x: config.__dict__["{}_PARAMS".format(x.upper())] for x in MODELS.keys()}
@@ -120,7 +120,7 @@ class DRLEnsembleAgent:
 if __name__ == "__main__":
     from pull_data import Pull_data
     from preprocessors import FeatureEngineer, split_data
-    import config
+    from utils import config
     import time
 
     # 拉取数据

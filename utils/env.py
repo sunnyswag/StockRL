@@ -415,9 +415,9 @@ class Stock_Trading_Env(gym.Env):
         return e, obs
 
 if __name__ == "__main__":
-    from pull_data import Pull_data
-    from preprocessors import FeatureEngineer, split_data
-    import config
+    from utils.pull_data import Pull_data
+    from utils.preprocessors import FeatureEngineer, split_data
+    from utils import config
     import time
 
     # 拉取数据

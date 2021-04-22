@@ -1,4 +1,4 @@
-import config
+from utils import config
 
 import itertools
 import numpy as np

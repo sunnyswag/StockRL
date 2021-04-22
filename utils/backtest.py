@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from copy import deepcopy
 
-from pull_data import Pull_data
-import config
+from utils.pull_data import Pull_data
+from utils import config
 
 # TODO add Readme and descriptions
 

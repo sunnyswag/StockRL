@@ -1,6 +1,6 @@
 import tushare as ts
 import pandas as pd
-import config
+from utils import config
 import time
 import os
 from datetime import datetime
