@@ -109,7 +109,8 @@ class Pull_data():
             except:
                 print("休息 3s")
                 time.sleep(3)
-        
+        print("--- 下载完成 ----")
+
         # 删除一些列并更改列名
         data_df = data_df.reset_index()
         data_df = data_df.drop(["pre_close", "change", "pct_chg", "amount"], axis = 1)
