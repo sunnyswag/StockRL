@@ -4,7 +4,7 @@ from utils.models import DRL_Agent
 from utils.env import Stock_Trading_Env
 from utils import config
 import time
-from utils.backtest import backtest_stats, backtest_plot, get_baseline
+from utils.backtest import backtest_stats, backtest_plot, get_baseline, get_daily_return
 
 # 拉取数据
 # df = Pull_data(config.SSE_50[:2], save_data=False).pull_data()
@@ -68,9 +68,21 @@ from utils.backtest import backtest_stats, backtest_plot, get_baseline
 # }
 # model_sac = agent.get_model("sac", model_kwargs=SAC_PARAMS)
 
-baseline_df = get_baseline(config.SSE_50_INDEX, 
-              start="20190101",
-              end="20210101")
+# baseline_df = get_baseline(config.SSE_50_INDEX, 
+#               start="20190101",
+#               end="20210101")
 
-baseline_stats = backtest_stats(baseline_df, value_col_name='close')
-print(baseline_df.head())
+# baseline_stats = backtest_stats(baseline_df, value_col_name='close')
+# print(baseline_df.head())
+
+import pandas as pd
+df_account_value = pd.read_csv('df_account_value.csv')
+df_account_return = get_daily_return(df_account_value)
+df_account_value.drop(df_account_value.index[1], inplace=True)
+print(df_account_return.head())
+print(df_account_return[df_account_return.index.duplicated()])
+backtest_plot(df_account_value,
+        baseline_start="20190101",
+        baseline_end="20210101",
+        baseline_ticker=config.SSE_50_INDEX,
+      )
