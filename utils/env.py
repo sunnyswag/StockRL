@@ -332,14 +332,16 @@ class Stock_Trading_Env(gym.Env):
                 state = [self.initial_amount] + \
                         self.data["close"].values.tolist() + \
                         [0] * self.stock_dim + \
-                        sum([self.data[tech].values.tolist() for tech in self.tech_indicator_list], [])
+                        sum([self.data[tech].values.tolist() for tech in self.tech_indicator_list], []) + \
+                        self.data["volume"].values.tolist()
                         # sum([[1, 2], [3, 4]] ,[]) = [1, 2, 3, 4]
             # 单只股票
             else:
                 state = [self.initial_amount] + \
                         [self.data["close"]] + \
                         [0] * self.stock_dim + \
-                        sum([[self.data[tech]] for tech in self.tech_indicator_list], [])
+                        sum([[self.data[tech]] for tech in self.tech_indicator_list], []) + \
+                        [self.data["volume"]]
         # 使用过去的数据
         else:
             # 多只股票
@@ -347,13 +349,15 @@ class Stock_Trading_Env(gym.Env):
                 state = [self.previous_state[0]] + \
                         self.data["close"].values.tolist() + \
                         self.previous_state[(self.stock_dim + 1) : (self.stock_dim * 2 + 1)] + \
-                        sum([self.data[tech].values.tolist() for tech in self.tech_indicator_list], [])
+                        sum([self.data[tech].values.tolist() for tech in self.tech_indicator_list], []) + \
+                        self.data["volume"].values.tolist()
             # 单只股票
             else:
                 state = [self.previous_state[0]] + \
                         [self.data["close"]] + \
                         self.previous_state[(self.stock_dim + 1) : (self.stock_dim * 2 + 1)] + \
-                        sum([[self.data[tech]] for tech in self.tech_indicator_list], [])
+                        sum([[self.data[tech]] for tech in self.tech_indicator_list], []) + \
+                        [self.data["volume"]]
 
         return state
 
@@ -363,12 +367,14 @@ class Stock_Trading_Env(gym.Env):
             state = [self.state[0]] + \
                     self.data["close"].values.tolist() + \
                     list(self.state[(self.stock_dim + 1): (self.stock_dim * 2 + 1)]) + \
-                    sum([self.data[tech].values.tolist() for tech in self.tech_indicator_list], [])
+                    sum([self.data[tech].values.tolist() for tech in self.tech_indicator_list], []) + \
+                    self.data["volume"].values.tolist()
         else:
             state = [self.state[0]] + \
                     [self.data["close"]] + \
                     list(self.state[(self.stock_dim + 1): (self.stock_dim * 2 + 1)]) + \
-                    sum([[self.data[tech]] for tech in self.tech_indicator_list], [])
+                    sum([[self.data[tech]] for tech in self.tech_indicator_list], []) + \
+                    [self.data["volume"]]
         
         return state
 

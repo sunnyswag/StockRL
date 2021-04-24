@@ -17,7 +17,7 @@ git pip install -r requirements.txt
 
 ### 环境描述
 
-**state_space 由四部分组成 :** 
+**state_space 五部分组成 :** 
 
 1. 当前的资金量
 
@@ -26,6 +26,8 @@ git pip install -r requirements.txt
 3. 每只股票当前的持仓量
 
 4. 股票数 * 技术指标数
+
+5. 成交量
 
 **reward 的计算方式：**
 
@@ -44,7 +46,7 @@ git pip install -r requirements.txt
 ### TODO
 
 - [ ] 改进 reward 的计算机制
-- [ ] 修改回测中的 0 值
-- [ ] 在 state 中增加成交量这个状态
-- [ ] 更换技术指标
+- [x] 解决回测中的 0 值问题
+- [x] 更换技术指标，在 state 中增加成交量这个状态
+- [ ] 进行模拟交易
 - [ ] 对多个强化学习算法进行测试
