@@ -56,7 +56,7 @@ SAC_PARAMS = {
     "batch_size": 64,
     "buffer_size": 100000,
     "learning_rate": 0.0001,
-    "learning_starts": 100,
+    "learning_starts": 2000,
     "ent_coef": "auto_0.1"
 }
 
