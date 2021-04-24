@@ -26,6 +26,7 @@ End_Test_Date = "2021-01-01"
 
 # 技术指标列表
 TECHNICAL_INDICATORS_LIST = [
+    "boll_ub","boll_lb","rsi_30", "cci_30", "dx_30", \
     "macd","volume_20_sma","volume_60_sma","volume_120_sma","close_20_sma","close_60_sma","close_120_sma"
 ]
 
