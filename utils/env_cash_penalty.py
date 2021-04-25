@@ -292,6 +292,9 @@ class StockTradingEnvCashpenalty(gym.Env):
                 actions = -(np.array(self.holdings))
                 self.log_step(reason="TURBULENCE")
 
+        # 消除 0/0 和 -0的情况
+        actions[np.isnan(actions)] = 0
+        actions[actions == -0 ] = 0
         return actions
 
     def step(self, actions):
