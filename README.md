@@ -45,10 +45,11 @@ git pip install -r requirements.txt
 
 ### TODO
 
-- [ ] 改进 reward 的计算机制
-- [ ] reset 在任意位置
+- [x] 改进 reward 的计算机制
+- [x] reset 在任意位置
 - [x] 解决回测中的 0 值问题
 - [x] 更换技术指标，在 state 中增加成交量这个状态
+- [ ] 用 Docker 运行
 - [ ] 进行模拟交易
 - [ ] 对多个强化学习算法进行测试
 
