@@ -49,9 +49,14 @@ git pip install -r requirements.txt
 - [x] reset 在任意位置
 - [x] 解决回测中的 0 值问题
 - [x] 更换技术指标，在 state 中增加成交量这个状态
-- [ ] 用 Docker 运行
+- [x] 解决为啥 finrl 在构建 Dockerfile 的时候使用的路径为 docker/ 而不是 .
+- [x] 用 Docker 运行
+- [ ] 解决训练不充分时，会进行超买超卖导致预测时会 terminal 的情况
 - [ ] 进行模拟交易
 - [ ] 对多个强化学习算法进行测试
+
+### LOGO
+1. n_cores = 24 and n_cores = 44 都未能运行成功
 
 ### Reference
 
