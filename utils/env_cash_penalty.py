@@ -334,7 +334,7 @@ class StockTradingEnvCashpenalty(gym.Env):
             self.account_information["date"] = self.dates[
                 -len(self.account_information["cash"]):
             ]
-            return pa.DataFrame(self.account_information)
+            return pd.DataFrame(self.account_information)
     
     def save_action_memory(self):
         if self.current_step == 0:
