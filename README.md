@@ -58,6 +58,7 @@ git pip install -r requirements.txt
 ### LOGO
 1. n_cores = 24 and n_cores = 44 都未能运行成功
 2. 得训练大概 100w num_timesteps 才差不多能学会, 训练 5w 大概 1个小时，训练 100 得 20 h 
+3. 是通过 logger 传数据到 model 的 replay_buffer 中吗？
 
 ### Reference
 

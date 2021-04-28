@@ -16,11 +16,11 @@ from stable_baselines3.common import logger
 class StockTradingEnvCashpenalty(gym.Env):
     """
         actions : list
-            action 为买的金额
+            action 正为买的金额，负为卖的金额
         state : list
             由三部分构成
             1、当前现金
-            2、每个股票的持仓市值
+            2、每支股票持仓数
             3、股票数 * 技术指标数
     """
 
@@ -220,11 +220,130 @@ class StockTradingEnvCashpenalty(gym.Env):
             self.printed_header = True
 
     def get_reward(self):
-        pass
+        """
+            reward 的计算:
+                1、账户上过多的现金会降低 reward
+                2、reward 的计算：当前的资产/起始资产/当前所用的步数
+        """
+        if self.current_step == 0:
+            return 0
+        else:
+            assets = self.account_information["total_assets"][-1]
+            cash = self.account_information["cash"][-1]
+            cash_penalty = max(0, (assets * self.cash_penalty_proportion - cash))
+            assets -= cash_penalty
+            reward = (assets / self.initial_amount) - 1
+            reward /= self.current_step
+            return reward
 
     def get_transactions(self, actions):
-        pass
+        """
+            该函数获取实际交易的股数
+        """
+        self.actions_memory.append(actions)
+        actions = actions * self.hmax
 
-    def step(self):
-        pass
+        # 收盘价为 0 的不进行交易
+        actions = np.where(self.closings > 0, actions, 0)
+        if self.discrete_actions:
+            pass
+        else:
+            actions = actions / self.closings
+        
+        # 不能卖的比持仓的多
+        actions = np.maximum(actions, -np.array(self.holdings))
+        if self.turbulence_threshold is not None:
+            pass
+        
+        # 将 0/0 = nan 和 -0 的值全部置为 0
+        actions[np.isnan(actions)] = 0
+        actions[actions == -0] = 0
+        return actions
+
+    def step(self, actions):
+        # sum_trades ??
+        self.sum_trades += np.sum(np.abs(actions))
+        self.log_header()
+        if(self.current_step + 1) % self.print_verbosity == 0:
+            self.log_step(reason="update")
+        if self.date_index == len(self.dates) - 1:
+            return self.return_terminal(reward=self.get_reward())
+        else:
+            begin_cash = self.cash_on_hand
+            assert min(self.holdings) >= 0
+            assert_value = np.dot(self.holdings, self.closings)
+            self.account_information["cash"].append(begin_cash)
+            self.account_information["asset_value"].append(assert_value)
+            self.account_information["total_assets"].append(begin_cash + assert_value)
+            reward = self.get_reward()
+            self.account_information["reward"].append(reward)
+
+            transactions = self.get_transactions(actions)
+            sells = -np.clip(transactions, -np.inf, 0)
+            proceeds = np.dot(sells, self.closings)
+            costs = proceeds * self.sell_cost_pct
+            coh = begin_cash + proceeds # 计算现金的数量
+
+            buys = np.clip(transactions, 0, np.inf)
+            spend = np.dot(buys, self.closings)
+            costs += spend * self.buy_cost_pct
+
+            if (spend + costs) > coh: # 如果买不起
+                if self.patient:
+                    self.log_step(reason="CASH SHORTAGE")
+                    transactions = np.where(transactions > 0, 0, transactions)
+                    spend = 0
+                    costs = 0
+                else:
+                    return self.return_terminal(
+                        reason="CASH SHORTAGE", reward=self.get_reward()
+                    )
+            self.transaction_memory.append(transactions)
+            assert (spend + costs) <= coh
+            coh = coh - spend - costs
+            holdings_updated = self.holdings + transactions
+            self.date_index += 1
+            if self.turbulence_threshold is not None:
+                pass
+            state = (
+                [coh] + list(holdings_updated) + self.get_date_vector(self.date_index)
+            )
+            self.state_memory.append(state)
+            return state, reward, False, {}
+
+    def get_sb_env(self):
+        def get_self():
+            return deepcopy(self)
+        
+        e = DummyVecEnv([get_self])
+        obs = e.reset()
+        return e, obs
+
+    def get_multiproc_env(self, n = 10):
+        def get_self():
+            return deepcopy(self)
+        
+        e = SubprocVecEnv([get_self for _ in range(n)], start_method="fork")
+        obs = e.reset()
+        return e, obs
     
+    def save_asset_memory(self):
+        if self.current_step == 0:
+            return None
+        else:
+            self.account_information["date"] = self.dates[
+                -len(self.account_information["cash"]):
+            ]
+            return pa.DataFrame(self.account_information)
+    
+    def save_action_memory(self):
+        if self.current_step == 0:
+            return None
+        else:
+            return pd.DataFrame(
+                {
+                    "date": self.dates[-len(self.account_information["cash"]):],
+                    "actions": self.actions_memory,
+                    "transactions": self.transaction_memory
+                }
+            )
