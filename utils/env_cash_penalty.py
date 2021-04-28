@@ -77,6 +77,9 @@ class StockTradingEnvCashpenalty(gym.Env):
         self.cached_data = None
         self.cash_penalty_proportion = cash_penalty_proportion
         if self.cache_indicator_data:
+            # cashing data 的结构:
+            # [[date1], [date2], [date3], ...]
+            # date1 : [stock1 * cols, stock2 * cols, ...]
             print("caching data")
             self.cached_data = [
                 self.get_date_vector(i) for i, _ in enumerate(self.dates)
@@ -104,3 +107,124 @@ class StockTradingEnvCashpenalty(gym.Env):
     def closings(self):
         return np.array(self.get_date_vector(self.date_index,cols=["close"]))
 
+    def get_date_vector(self, date, cols=None):
+        if(cols is None) and (self.cached_data is not None):
+            return self.cached_data[date]
+        else:
+            date = self.dates[date]
+            if cols is None:
+                cols = self.daily_information_cols
+            trunc_df = self.df.loc[[date]]
+            res = []
+            for asset in self.assets:
+                tmp_res = trunc_df[trunc_df[self.stock_col] == asset]
+                res += tmp_res.loc[date, cols].tolist()
+            assert len(res) == len(self.assets) * len(cols)
+            return res
+    
+    def reset(self):
+        self.seed()
+        self.sum_trades = 0
+        if self.random_start:
+            self.starting_point = random.choice(range(int(len(self.dates) * 0.5)))
+        else:
+            self.starting_point = 0
+        self.date_index = self.starting_point
+        self.turbulence = 0
+        self.episode += 1
+        self.actions_memory = []
+        self.transaction_memory = []
+        self.state_memory = []
+        self.account_information = {
+            "cash": [],
+            "asset_value": [],
+            "total_assets": [],
+            "reward": []
+        }
+        init_state = np.array(
+            [self.initial_amount] 
+            + [0] * len(self.assets)
+            + self.get_date_vector(self.date_index)
+        )
+        self.state_memory.append(init_state)
+        return init_state
+
+    def log_step(self, reason, terminal_reward=None):
+        if terminal_reward is None:
+            terminal_reward = self.account_information["reward"]
+        cash_pct = self.account_information["cash"][-1] / self.account_information["total_assets"][-1]
+        gl_pct = self.account_information["total_assets"][-1] / self.initial_amount
+        rec = [
+            # TODO
+            self.episode,
+            self.date_index - self.starting_point,
+            reason,
+            f"{self.currency}{'{:0,.0f}'.format(float(self.account_information['cash'][-1]))}", # 也没有这行
+            f"{self.currency}{'{:0,.0f}'.format(float(self.account_information['total_assets'][-1]))}",
+            f"{terminal_reward*100:0.5f}%",
+            f"{(gl_pct - 1)*100:0.5f}%", # 没有这行吗
+            f"{cash_pct*100:0.2f}%"
+        ]
+        self.episode_history.append(rec)
+        print(self.template.format(*rec))
+
+    def return_terminal(self, reason="Last Date", reward=0):
+        state = self.state_memory[-1]
+        self.log_step(reason=reason, terminal_reward=reward)
+        gl_pct = self.account_information["total_assets"][-1] / self.initial_amount
+        logger.record("environment/GainLoss_pct", (gl_pct - 1) * 100)
+        logger.record(
+            "environment/total_assets",
+            int(self.account_information["total_assets"][-1])
+        )
+        reward_pct = gl_pct
+        logger.record("environment/total_reward_pct", (reward_pct - 1) * 100)
+        logger.record("environment/total_trades", self.sum_trades)
+        logger.record(
+            "environment/avg_daily_trades",
+            self.sum_trades / (self.current_step)
+        )
+        logger.record(
+            "environment/avg_daily_trades_per_asset",
+            self.sum_trades / (self.current_step) / len(self.assets)
+        )
+        logger.record("environment/completed_steps", self.current_step)
+        logger.record(
+            "environment/sum_rewards", np.sum(self.account_information["reward"])
+        )
+        logger.record(
+            "environment/cash_proportion",
+            self.account_information["cash"][-1]
+            / self.account_information["total_assets"][-1]
+        )
+
+        return state, reward, True, {}
+
+    def log_header(self):
+        if not self.printed_header:
+            self.template = "{0:4}|{1:4}{2:15}|{3:15}|{4:15}|{5:10}|{6:10}|{7:10}"
+            # 0, 1, 2, ... 是序号
+            # 4, 4, 15, ... 是占位格的大小
+            print(
+                self.template.format(
+                    "EPISODE",
+                    "STEPS",
+                    "TERMINAL_REASON",
+                    "CASH",
+                    "TOT_ASSETS",
+                    "TERMINAL_REWARD_unsc",
+                    "GAINLOSS_PCT",
+                    "CASH_PROPORTION"
+                )
+            )
+            self.printed_header = True
+
+    def get_reward(self):
+        pass
+
+    def get_transactions(self, actions):
+        pass
+
+    def step(self):
+        pass
+    
