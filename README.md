@@ -51,7 +51,8 @@ git pip install -r requirements.txt
 - [x] 更换技术指标，在 state 中增加成交量这个状态
 - [x] 解决为啥 finrl 在构建 Dockerfile 的时候使用的路径为 docker/ 而不是 .
 - [x] 用 Docker 运行
-- [ ] 解决训练不充分时，会进行超买超卖导致预测时会 terminal 的情况
+- [x] 解决训练不充分时，会进行超买超卖导致预测时会 terminal 的情况
+- [ ] 重新设计 reward function，重新设计的 reward function 有两个重点：强调绝对收益和控制收益的回撤
 - [ ] 进行模拟交易
 - [ ] 对多个强化学习算法进行测试
 
@@ -59,6 +60,7 @@ git pip install -r requirements.txt
 1. n_cores = 24 and n_cores = 44 都未能运行成功
 2. 得训练大概 100w num_timesteps 才差不多能学会, 训练 5w 大概 1个小时，训练 100 得 20 h 
 3. 是通过 logger 传数据到 model 的 replay_buffer 中吗？
+4. 目测得跑 2 天了
 
 ### Reference
 

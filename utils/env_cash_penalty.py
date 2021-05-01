@@ -151,7 +151,7 @@ class StockTradingEnvCashpenalty(gym.Env):
 
     def log_step(self, reason, terminal_reward=None):
         if terminal_reward is None:
-            terminal_reward = self.account_information["reward"]
+            terminal_reward = self.account_information["reward"][-1]
         cash_pct = self.account_information["cash"][-1] / self.account_information["total_assets"][-1]
         gl_pct = self.account_information["total_assets"][-1] / self.initial_amount
         rec = [
@@ -233,7 +233,7 @@ class StockTradingEnvCashpenalty(gym.Env):
             cash_penalty = max(0, (assets * self.cash_penalty_proportion - cash))
             assets -= cash_penalty
             reward = (assets / self.initial_amount) - 1
-            reward /= self.current_step
+            # reward /= self.current_step
             return reward
 
     def get_transactions(self, actions):
