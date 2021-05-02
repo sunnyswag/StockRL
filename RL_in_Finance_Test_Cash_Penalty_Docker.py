@@ -7,7 +7,7 @@
 # ## 1、拉取 github 仓库，下载并导入相关包
 # &emsp;&emsp;运行流程：python setup.py -> pip install -r requirements.txt
 
-# In[ ]:
+# In[1]:
 
 
 import pandas as pd
@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import datetime
 import time
 
-# get_ipython().run_line_magic('matplotlib', 'inline')
+get_ipython().run_line_magic('matplotlib', 'inline')
 from utils import config
 from utils.pull_data import Pull_data
 from utils.preprocessors import FeatureEngineer, split_data
@@ -69,7 +69,7 @@ sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
 
 
 # processed_df = FeatureEngineer(use_technical_indicator=True).preprocess_data(df)
-# processed_df['log_volume'] = np.log(processed_df.volume*processed_df.close)
+# processed_df['amount'] = processed_df.volume * processed_df.close
 # processed_df['change'] = (processed_df.close-processed_df.open)/processed_df.close
 # processed_df['daily_variance'] = (processed_df.high-processed_df.low)/processed_df.close
 
@@ -94,21 +94,21 @@ sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
 # processed_df.head()
 
 
-# In[2]:
+# In[10]:
 
 
 # processed_df.to_csv("processed_df.csv", index = False)
 processed_df = pd.read_csv("processed_df.csv")
 
 
-# In[3]:
+# In[11]:
 
 
 train_data = split_data(processed_df, config.Start_Trade_Date, config.End_Trade_Date)
 test_data = split_data(processed_df, config.End_Trade_Date, config.End_Test_Date)
 
 
-# In[4]:
+# In[12]:
 
 
 print("训练数据的范围：{} 至 {}".format(config.Start_Trade_Date, config.End_Trade_Date))
@@ -117,13 +117,13 @@ print("训练数据的长度: {},测试数据的长度:{}".format(len(train_data
 print("训练集数据 : 测试集数据: {} : {}".format(round(len(train_data)/len(test_data),1), 1))
 
 
-# In[5]:
+# In[13]:
 
 
 train_data.head()
 
 
-# In[6]:
+# In[14]:
 
 
 test_data.head()
@@ -147,7 +147,7 @@ test_data.head()
 #   * 正数表示买入，负数表示卖出，0表示不进行买入卖出操作
 #   * 绝对值表示买入卖出的数量
 
-# In[7]:
+# In[15]:
 
 
 # stock_dimension = len(df.tic.unique())
@@ -156,11 +156,11 @@ test_data.head()
 # print("stock_dimension: {}, state_space: {}".format(stock_dimension, state_space))
 
 
-# In[8]:
+# In[17]:
 
 
 # 初始化环境的参数
-information_cols = config.TECHNICAL_INDICATORS_LIST + ["close", "day", "log_volume", "change", "daily_variance"]
+information_cols = config.TECHNICAL_INDICATORS_LIST + ["close", "day", "amount", "change", "daily_variance"]
 
 e_train_gym = StockTradingEnvRetreatpenalty(df = train_data,initial_amount = 1e6,hmax = 5000, 
                                 turbulence_threshold = None, 
@@ -185,27 +185,27 @@ e_trade_gym = StockTradingEnvRetreatpenalty(df = test_data,initial_amount = 1e6,
                                 random_start = False)
 
 
-# In[9]:
+# In[19]:
 
 
 # 对环境进行测试
 # %debug
-observation = e_train_gym.reset() # 初始化环境，observation为环境状态
-count = 0
-total_reward = 0
-for t in range(300):
-    action = e_train_gym.action_space.sample() # 随机采样动作
-    observation, reward, done, info = e_train_gym.step(action) # 与环境交互，获得下一个state的值
-    total_reward += reward
-    if done:             
-        break
-    count+=1
-    # time.sleep(0.2)      #每次等待 0.2s
-print("count: ", count)
-print("reward: {}, done: {}".format(total_reward, done))
+# observation = e_train_gym.reset() # 初始化环境，observation为环境状态
+# count = 0
+# total_reward = 0
+# for t in range(300):
+#     action = e_train_gym.action_space.sample() # 随机采样动作
+#     observation, reward, done, info = e_train_gym.step(action) # 与环境交互，获得下一个state的值
+#     total_reward += reward
+#     if done:             
+#         break
+#     count+=1
+#     # time.sleep(0.2)      #每次等待 0.2s
+# print("count: ", count)
+# print("reward: {}, done: {}".format(total_reward, done))
 
 
-# In[ ]:
+# In[20]:
 
 
 import multiprocessing
@@ -225,13 +225,13 @@ env_trade, _ = e_trade_gym.get_sb_env()
 
 # 所用到的框架：stable_baseline3
 
-# In[20]:
+# In[21]:
 
 
 agent = DRL_Agent(env = env_train)
 
 
-# In[21]:
+# In[22]:
 
 
 # from torch.nn import Softsign, ReLU

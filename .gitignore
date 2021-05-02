@@ -2,3 +2,4 @@
 *.model
 *.out
 tensorboard_log/
+.ipynb_checkpoints/*
