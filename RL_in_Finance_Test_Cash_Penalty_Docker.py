@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import datetime
 import time
 
-get_ipython().run_line_magic('matplotlib', 'inline')
+# get_ipython().run_line_magic('matplotlib', 'inline')
 from utils import config
 from utils.pull_data import Pull_data
 from utils.preprocessors import FeatureEngineer, split_data

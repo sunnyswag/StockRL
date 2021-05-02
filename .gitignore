@@ -1,3 +1,4 @@
 *.csv
 *.model
 *.out
+tensorboard_log/
