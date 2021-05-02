@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
 from stable_baselines3.common import logger
 
-class StockTradingEnvCashpenalty(gym.Env):
+class StockTradingEnvRetreatpenalty(gym.Env):
     """
         actions : list
             action 正为买的金额，负为卖的金额
@@ -40,10 +40,10 @@ class StockTradingEnvCashpenalty(gym.Env):
         initial_amount = 1e6,
         daily_information_cols = ["open", "close", "high", "low", "volume"],
         cache_indicator_data = True,
-        cash_penalty_proportion = 0.2,
         random_start = True,
         patient = False,
-        currency = "￥"
+        currency = "￥",
+        cash_penalty_proportion=0.5
     ):
         self.df = df
         self.stock_col = "tic"
@@ -75,6 +75,7 @@ class StockTradingEnvCashpenalty(gym.Env):
         self.printed_header = False
         self.cache_indicator_data = cache_indicator_data
         self.cached_data = None
+        self.max_total_assets = 0
         self.cash_penalty_proportion = cash_penalty_proportion
         if self.cache_indicator_data:
             # cashing data 的结构:
@@ -125,6 +126,7 @@ class StockTradingEnvCashpenalty(gym.Env):
     def reset(self):
         self.seed()
         self.sum_trades = 0
+        self.max_total_assets = self.initial_amount
         if self.random_start:
             self.starting_point = random.choice(range(int(len(self.dates) * 0.5)))
         else:
@@ -152,18 +154,22 @@ class StockTradingEnvCashpenalty(gym.Env):
     def log_step(self, reason, terminal_reward=None):
         if terminal_reward is None:
             terminal_reward = self.account_information["reward"][-1]
-        cash_pct = self.account_information["cash"][-1] / self.account_information["total_assets"][-1]
+        
+        assets = self.account_information["total_assets"][-1]
+        tmp_retreat_ptc = assets / self.max_total_assets * (-1)
+        retreat_pct = tmp_retreat_ptc if assets < self.max_total_assets else 0
         gl_pct = self.account_information["total_assets"][-1] / self.initial_amount
+
         rec = [
             # TODO
             self.episode,
             self.date_index - self.starting_point,
             reason,
-            f"{self.currency}{'{:0,.0f}'.format(float(self.account_information['cash'][-1]))}", # 也没有这行
+            f"{self.currency}{'{:0,.0f}'.format(float(self.account_information['cash'][-1]))}",
             f"{self.currency}{'{:0,.0f}'.format(float(self.account_information['total_assets'][-1]))}",
             f"{terminal_reward*100:0.5f}%",
-            f"{(gl_pct - 1)*100:0.5f}%", # 没有这行吗
-            f"{cash_pct*100:0.2f}%"
+            f"{(gl_pct - 1)*100:0.5f}%",
+            f"{retreat_pct*100:0.2f}%"
         ]
         self.episode_history.append(rec)
         print(self.template.format(*rec))
@@ -193,9 +199,8 @@ class StockTradingEnvCashpenalty(gym.Env):
             "environment/sum_rewards", np.sum(self.account_information["reward"])
         )
         logger.record(
-            "environment/cash_proportion",
-            self.account_information["cash"][-1]
-            / self.account_information["total_assets"][-1]
+            "environment/retreat_proportion",
+            self.account_information["total_assets"][-1] / self.max_total_assets
         )
 
         return state, reward, True, {}
@@ -214,7 +219,7 @@ class StockTradingEnvCashpenalty(gym.Env):
                     "TOT_ASSETS",
                     "TERMINAL_REWARD_unsc",
                     "GAINLOSS_PCT",
-                    "CASH_PROPORTION"
+                    "RETREAT_PROPORTION"
                 )
             )
             self.printed_header = True
@@ -229,10 +234,13 @@ class StockTradingEnvCashpenalty(gym.Env):
             return 0
         else:
             assets = self.account_information["total_assets"][-1]
-            cash = self.account_information["cash"][-1]
-            cash_penalty = max(0, (assets * self.cash_penalty_proportion - cash))
-            assets -= cash_penalty
-            reward = (assets / self.initial_amount) - 1
+            retreat = 0
+            if assets >= self.max_total_assets:
+                self.max_total_assets = assets
+            else:
+                retreat = assets / self.max_total_assets
+            reward = assets / self.initial_amount - 1
+            reward -= retreat * self.cash_penalty_proportion
             # reward /= self.current_step
             return reward
 
