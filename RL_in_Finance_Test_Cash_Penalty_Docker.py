@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import datetime
 import time
 
-get_ipython().run_line_magic('matplotlib', 'inline')
+# get_ipython().run_line_magic('matplotlib', 'inline')
 from utils import config
 from utils.pull_data import Pull_data
 from utils.preprocessors import FeatureEngineer, split_data
@@ -257,7 +257,7 @@ model = agent.get_model("ppo",
 # In[ ]:
 
 
-model.learn(total_timesteps = 30000, 
+model.learn(total_timesteps = 1000000, 
             eval_env = env_trade, 
             eval_freq = 500,
             log_interval = 1, 
@@ -276,7 +276,7 @@ model.save("scaling_reward_{}_cores.model".format(n_cores))
 # In[ ]:
 
 
-df_account_value, df_actions = DRL_prediction(
+df_account_value, df_actions = DRL_Agent.DRL_prediction(
     model=model, 
     environment = e_trade_gym)
 
@@ -313,7 +313,8 @@ df_actions.tail()
 
 
 print("---------------------获取回测结果---------------------")
-pref_stats_all = backtest_stats(account_value=df_account_value)
+pref_stats_all = backtest_stats(account_value=df_account_value,
+                               value_col_name = 'total_assets')
 
 # perf_stats_all = pd.DataFrame(perf_stats_all)
 # now = datetime.datetime.now().strftime('%Y%m%d-%Hh%M')
@@ -354,6 +355,7 @@ backtest_plot(df_account_value,
         baseline_start="20190101",
         baseline_end="20210101",
         baseline_ticker=config.SSE_50_INDEX,
+        value_col_name = 'total_assets'
       )
 
 
