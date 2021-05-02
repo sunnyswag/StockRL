@@ -53,6 +53,7 @@ git pip install -r requirements.txt
 - [x] 用 Docker 运行
 - [x] 解决训练不充分时，会进行超买超卖导致预测时会 terminal 的情况
 - [x] 重新设计 reward function，重新设计的 reward function 有两个重点：强调绝对收益和控制收益的回撤
+- [ ] 重新调整 .gitignore 去除一些不需要的文件
 - [ ] 进行模拟交易
 - [ ] 对多个强化学习算法进行测试
 
