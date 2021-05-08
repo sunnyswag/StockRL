@@ -298,7 +298,7 @@ class StockTradingEnvRetreatpenalty(gym.Env):
 
             if (spend + costs) > coh: # 如果买不起
                 if self.patient:
-                    self.log_step(reason="CASH SHORTAGE")
+#                     self.log_step(reason="CASH SHORTAGE")
                     transactions = np.where(transactions > 0, 0, transactions)
                     spend = 0
                     costs = 0

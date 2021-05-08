@@ -254,15 +254,17 @@ class StockTradingEnvRetreatpenalty(gym.Env):
         if self.discrete_actions:
             pass
         else:
-            actions = actions / self.closings
+            # 去除被除数为 0 的警告
+            out = np.zeros_like(actions)
+            zero_or_not = self.closings != 0
+            actions = np.divide(actions, self.closings, out=out, where = zero_or_not)
         
         # 不能卖的比持仓的多
         actions = np.maximum(actions, -np.array(self.holdings))
         if self.turbulence_threshold is not None:
             pass
         
-        # 将 0/0 = nan 和 -0 的值全部置为 0
-        actions[np.isnan(actions)] = 0
+        # 将 -0 的值全部置为 0
         actions[actions == -0] = 0
         return actions
 
@@ -296,7 +298,7 @@ class StockTradingEnvRetreatpenalty(gym.Env):
 
             if (spend + costs) > coh: # 如果买不起
                 if self.patient:
-                    self.log_step(reason="CASH SHORTAGE")
+#                     self.log_step(reason="CASH SHORTAGE")
                     transactions = np.where(transactions > 0, 0, transactions)
                     spend = 0
                     costs = 0
