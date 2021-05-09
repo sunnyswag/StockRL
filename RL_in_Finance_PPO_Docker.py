@@ -7,7 +7,7 @@
 # ## 1、拉取 github 仓库，下载并导入相关包
 # &emsp;&emsp;运行流程：python setup.py -> pip install -r requirements.txt
 
-# In[1]:
+# In[2]:
 
 
 import pandas as pd
@@ -17,7 +17,6 @@ import matplotlib.pyplot as plt
 import datetime
 import time
 
-# get_ipython().run_line_magic('matplotlib', 'inline')
 from utils import config
 from utils.pull_data import Pull_data
 from utils.preprocessors import FeatureEngineer, split_data
@@ -26,10 +25,18 @@ from utils.models import DRL_Agent
 from utils.backtest import backtest_stats, backtest_plot, get_baseline
 import itertools
 import sys
+import os
 import codecs
 sys.path.append("../RL_in_Finance")
 sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
 
+result_dir = "result"
+result_path = os.path.join(os.getcwd(), result_dir)
+if not os.path.exists(result_path):
+    os.mkdir(result_path)
+    print("result文件夹创建成功！")
+else:
+    print("result文件夹已存在！")
 
 # ## 2、下载数据
 
@@ -37,26 +44,26 @@ sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
 # 当前用到的数据：SSE_50 和 CSI_300<br>
 # 数据量的大小：shape[2892 * n, 8]
 
-# In[2]:
+# In[3]:
 
 
 # stock_list = config.SSE_50
 # df = Pull_data(stock_list, save_data=False).pull_data()
 
 
-# In[3]:
+# In[4]:
 
 
 # df.sort_values(['date', 'tic'], ignore_index=True).head()
 
 
-# In[4]:
+# In[5]:
 
 
 # print("数据下载的时间区间为：{} 至 {}".format(config.Start_Date, config.End_Date))
 
 
-# In[5]:
+# In[6]:
 
 
 # print("下载的股票列表为: ")
@@ -65,7 +72,7 @@ sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
 
 # ## 3、数据预处理
 
-# In[6]:
+# In[7]:
 
 
 # processed_df = FeatureEngineer(use_technical_indicator=True).preprocess_data(df)
@@ -74,13 +81,13 @@ sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
 # processed_df['daily_variance'] = (processed_df.high-processed_df.low)/processed_df.close
 
 
-# In[7]:
+# In[8]:
 
 
 # processed_df = processed_df.fillna(0)
 
 
-# In[8]:
+# In[9]:
 
 
 # print("技术指标列表: ")
@@ -88,27 +95,27 @@ sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
 # print("技术指标数: {}个".format(len(config.TECHNICAL_INDICATORS_LIST)))
 
 
-# In[9]:
+# In[10]:
 
 
 # processed_df.head()
 
 
-# In[10]:
+# In[11]:
 
 
 # processed_df.to_csv("processed_df.csv", index = False)
 processed_df = pd.read_csv("processed_df.csv")
 
 
-# In[11]:
+# In[12]:
 
 
 train_data = split_data(processed_df, config.Start_Trade_Date, config.End_Trade_Date)
 test_data = split_data(processed_df, config.End_Trade_Date, config.End_Test_Date)
 
 
-# In[12]:
+# In[13]:
 
 
 print("训练数据的范围：{} 至 {}".format(config.Start_Trade_Date, config.End_Trade_Date))
@@ -117,13 +124,13 @@ print("训练数据的长度: {},测试数据的长度:{}".format(len(train_data
 print("训练集数据 : 测试集数据: {} : {}".format(round(len(train_data)/len(test_data),1), 1))
 
 
-# In[13]:
+# In[14]:
 
 
 train_data.head()
 
 
-# In[14]:
+# In[15]:
 
 
 test_data.head()
@@ -147,7 +154,7 @@ test_data.head()
 #   * 正数表示买入，负数表示卖出，0表示不进行买入卖出操作
 #   * 绝对值表示买入卖出的数量
 
-# In[15]:
+# In[16]:
 
 
 # stock_dimension = len(df.tic.unique())
@@ -185,7 +192,7 @@ e_trade_gym = StockTradingEnvRetreatpenalty(df = test_data,initial_amount = 1e6,
                                 random_start = False)
 
 
-# In[19]:
+# In[18]:
 
 
 # 对环境进行测试
@@ -205,17 +212,11 @@ e_trade_gym = StockTradingEnvRetreatpenalty(df = test_data,initial_amount = 1e6,
 # print("reward: {}, done: {}".format(total_reward, done))
 
 
-# In[20]:
+# In[19]:
 
-
-import multiprocessing
-
-n_cores = multiprocessing.cpu_count() - 10
-n_cores = 24
-print("using {} cores".format(n_cores))
 
 #this is our training env. It allows multiprocessing
-env_train, _ = e_train_gym.get_multiproc_env(n = n_cores)
+env_train, _ = e_train_gym.get_sb_env()
 
 #this is our observation environment. It allows full diagnostics
 env_trade, _ = e_trade_gym.get_sb_env()
@@ -225,7 +226,7 @@ env_trade, _ = e_trade_gym.get_sb_env()
 
 # 所用到的框架：stable_baseline3
 
-# In[21]:
+# In[20]:
 
 
 agent = DRL_Agent(env = env_train)
@@ -233,25 +234,9 @@ agent = DRL_Agent(env = env_train)
 
 # In[22]:
 
-
-# from torch.nn import Softsign, ReLU
-ppo_params ={'n_steps': 256, 
-             'ent_coef': 0.0, 
-             'learning_rate': 0.000005, 
-             'batch_size': 256, 
-            'gamma': 0.99}
-
-policy_kwargs = {
-#     "activation_fn": ReLU,
-    "net_arch": [1024 for _ in range(10)], 
-#     "squash_output": True
-}
-
-model = agent.get_model("ppo",  
-                        model_kwargs = ppo_params, 
-                        policy_kwargs = policy_kwargs, verbose = 0)
-
-# model = model.load("scaling_reward.model", env = env_train)
+model_name = "ppo"
+model = agent.get_model(model_name,  model_kwargs = config.PPO_PARAMS, verbose = 0)
+# model = model.load("scaling_reward_24_cores.model", env = env_train)
 
 
 # In[ ]:
@@ -267,13 +252,13 @@ model.learn(total_timesteps = 1000000,
 
 # In[ ]:
 
-
-model.save("scaling_reward_{}_cores.model".format(n_cores))
+model_path = os.path.join(result_path, "scaling_reward_{}.model".format(model_name))
+model.save(model_path)
 
 
 # ## 6、测试
 
-# In[ ]:
+# In[23]:
 
 
 df_account_value, df_actions = DRL_Agent.DRL_prediction(
@@ -281,16 +266,16 @@ df_account_value, df_actions = DRL_Agent.DRL_prediction(
     environment = e_trade_gym)
 
 
-# In[ ]:
+# In[24]:
 
 
 print("回测的时间窗口：{} 至 {}".format(config.End_Trade_Date, config.End_Test_Date))
 
 
-# In[ ]:
+# In[25]:
 
-
-df_account_value.to_csv("df_account_value.csv", index=False)
+account_value_path = os.path.join(result_path, "df_account_value_{}.csv".format(model_name))
+df_account_value.to_csv(account_value_path, index=False)
 print("查看日账户净值")
 print("开始: ")
 print(df_account_value.head())
@@ -299,17 +284,18 @@ print("结束: ")
 print(df_account_value.tail())
 
 
-# In[ ]:
+# In[26]:
 
 
 print("查看每日所作的交易")
-df_actions.to_csv("df_actions.csv", index=False)
+actions_path = os.path.join(result_path, "df_actions_{}.csv".format(model_name))
+df_actions.to_csv(actions_path, index=False)
 df_actions.tail()
 
 
 # ## 7、回测
 
-# In[ ]:
+# In[32]:
 
 
 print("---------------------获取回测结果---------------------")
@@ -321,7 +307,7 @@ pref_stats_all = backtest_stats(account_value=df_account_value,
 # perf_stats_all.to_csv("./"+config.RESULTS_DIR+"/perf_stats_all_"+now+'.csv')
 
 
-# In[ ]:
+# In[28]:
 
 
 # 获取 baseline 的结果
@@ -332,25 +318,24 @@ baseline_df = get_baseline(config.SSE_50_INDEX,
 baseline_stats = backtest_stats(baseline_df, value_col_name='close')
 
 
-# In[ ]:
+# In[29]:
 
 
 # 删除 df_account_value 中重复的行
 df_account_value.drop(df_account_value.index[1], inplace=True)
 
 
-# In[ ]:
+# In[30]:
 
 
 baseline_df.head(10)
 
 
-# In[ ]:
+# In[33]:
 
 
 print("---------------------Plot---------------------")
 print("和 {} 指数进行比较".format(config.SSE_50_INDEX[0]))
-get_ipython().run_line_magic('matplotlib', 'inline')
 backtest_plot(df_account_value,
         baseline_start="20190101",
         baseline_end="20210101",

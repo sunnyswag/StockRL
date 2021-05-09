@@ -37,10 +37,10 @@ A2C_PARAMS = {
     "learning_rate": 0.0007
     }
 PPO_PARAMS = {
-    "n_steps": 2048,
+    "n_steps": 256,
     "ent_coef": 0.01,
-    "learning_rate": 0.00025,
-    "batch_size": 64
+    "learning_rate": 0.00005,
+    "batch_size": 256
     }
 DDPG_PARAMS = {
     "batch_size": 128, 
