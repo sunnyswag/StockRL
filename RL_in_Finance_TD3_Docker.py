@@ -31,9 +31,11 @@ sys.path.append("../RL_in_Finance")
 sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
 
 result_dir = "result"
+model_name = "td3"
 result_path = os.path.join(os.getcwd(), result_dir)
+result_path = os.path.join(result_path, model_name)
 if not os.path.exists(result_path):
-    os.mkdir(result_path)
+    os.makedirs(result_path)
     print("result文件夹创建成功！")
 else:
     print("result文件夹已存在！")
@@ -234,7 +236,6 @@ agent = DRL_Agent(env = env_train)
 
 # In[22]:
 
-model_name = "td3"
 model = agent.get_model(model_name,  model_kwargs = config.TD3_PARAMS, verbose = 0)
 # model = model.load("scaling_reward_24_cores.model", env = env_train)
 
