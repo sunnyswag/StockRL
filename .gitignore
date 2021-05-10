@@ -3,5 +3,5 @@
 *.out
 tensorboard_log/
 .ipynb_checkpoints/*
-result/
+*/result/
 */nohup/
