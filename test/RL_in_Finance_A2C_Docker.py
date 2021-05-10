@@ -17,6 +17,9 @@ import matplotlib.pyplot as plt
 import datetime
 import time
 
+import sys
+sys.path.append("../RL_in_Finance")
+
 from utils import config
 from utils.pull_data import Pull_data
 from utils.preprocessors import FeatureEngineer, split_data
@@ -24,14 +27,13 @@ from utils.env_retreat_penalty import StockTradingEnvRetreatpenalty
 from utils.models import DRL_Agent
 from utils.backtest import backtest_stats, backtest_plot, get_baseline
 import itertools
-import sys
+
 import os
 import codecs
-sys.path.append("../RL_in_Finance")
 sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
 
 result_dir = "result"
-model_name = "ddpg"
+model_name = "a2c"
 result_path = os.path.join(os.getcwd(), result_dir)
 result_path = os.path.join(result_path, model_name)
 if not os.path.exists(result_path):
@@ -236,7 +238,7 @@ agent = DRL_Agent(env = env_train)
 
 # In[22]:
 
-model = agent.get_model(model_name,  model_kwargs = config.DDPG_PARAMS, verbose = 0)
+model = agent.get_model(model_name,  model_kwargs = config.A2C_PARAMS, verbose = 0)
 # model = model.load("scaling_reward_24_cores.model", env = env_train)
 
 

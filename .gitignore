@@ -4,4 +4,4 @@
 tensorboard_log/
 .ipynb_checkpoints/*
 result/
-nohup/
+*/nohup/
