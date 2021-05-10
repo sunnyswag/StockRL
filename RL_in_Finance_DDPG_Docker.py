@@ -243,7 +243,7 @@ model = agent.get_model(model_name,  model_kwargs = config.DDPG_PARAMS, verbose 
 # In[ ]:
 
 
-model.learn(total_timesteps = 1000000, 
+model.learn(total_timesteps = 500000, 
             eval_env = env_trade, 
             eval_freq = 500,
             log_interval = 1, 
