@@ -5,3 +5,4 @@ tensorboard_log/
 .ipynb_checkpoints/*
 */result/
 */nohup/
+trained_result/
