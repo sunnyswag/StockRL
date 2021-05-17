@@ -16,7 +16,7 @@ class Trainer:
                         total_timesteps = 200000,
                         sub_result_dir = "result",
                         data_filename = "data.csv",
-                        stock_list = config.SSE_50[:3]) -> None:
+                        stock_list = config.SSE_50) -> None:
         self.model_name = model_name
         self.total_timesteps = total_timesteps
         self.sub_result_dir = sub_result_dir
