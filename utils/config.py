@@ -60,6 +60,21 @@ SAC_PARAMS = {
     "ent_coef": "auto_0.1"
 }
 
+# 环境的超参数
+information_cols = TECHNICAL_INDICATORS_LIST + ["close", "day", "amount", "change", "daily_variance"]
+ENV_PARAMS = {
+    "initial_amount": 1e6,
+    "hmax": 5000, 
+    "turbulence_threshold": None, 
+    "currency": '￥',
+    "buy_cost_pct": 3e-3,
+    "sell_cost_pct": 3e-3,
+    "cache_indicator_data": True,
+    "daily_information_cols": information_cols, 
+    "print_verbosity": 500,
+    "patient":True,
+}
+
 TENSORBOARD_LOG_DIR = f"tensorboard_log"
 
 # 上证 50 指数和成分股
