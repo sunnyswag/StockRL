@@ -1,11 +1,10 @@
 *.csv
 *.model
 *.out
-tensorboard_log/
-.ipynb_checkpoints/*
+
 */result/
 */nohup/
-trained_result/
-.ipynb_checkpoints/
+*/tensorboard_log/
+
 */.ipynb_checkpoints/*
 .vscode/
