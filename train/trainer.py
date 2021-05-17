@@ -2,6 +2,8 @@ import pandas as pd
 import os
 import codecs
 import sys
+sys.path.append("..")
+
 sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
 
 from utils import config
@@ -36,18 +38,18 @@ class Trainer:
 
         if not os.path.exists(result_dir):
             os.makedirs(result_dir)
-            print("{}文件夹创建成功!".format(self.sub_result_dir))
+            print("{} 文件夹创建成功!".format(self.sub_result_dir))
         else:
-            print("{}文件夹已存在!".format(self.sub_result_dir))
+            print("{} 文件夹已存在!".format(self.sub_result_dir))
 
     def get_data(self) -> pd.DataFrame:
         data_dir = os.path.join(os.getcwd(), self.data_filename)
 
         if os.path.exists(data_dir):
-            print("{}已存在，直接读取！".format(self.data_filename))
+            print("{} 已存在，直接读取！".format(self.data_filename))
             data = pd.read_csv(data_dir)
         else:
-            print("未找到{}，需要下载！".format(self.data_filename))
+            print("未找到 {}，需要下载！".format(self.data_filename))
             data = self.pull_data(data_dir)
         
         return data

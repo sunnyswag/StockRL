@@ -1,4 +1,4 @@
-from train.trainer import Trainer
+from trainer import Trainer
 from argparse import ArgumentParser
 
 def create_parser():
@@ -26,7 +26,7 @@ def create_parser():
 def main():
     parser = create_parser()
     options = parser.parse_args()
-    Trainer(models = options.model,
+    Trainer(model_name = options.model,
             total_timesteps = options.total_timesteps).train()
 
 if __name__ == "__main__":

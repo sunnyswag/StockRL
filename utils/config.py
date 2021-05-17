@@ -30,6 +30,8 @@ TECHNICAL_INDICATORS_LIST = [
     "macd", "volume_20_sma", "volume_60_sma", "volume_120_sma"
 ]
 
+MODEL_LIST = ["a2c", "ddpg", "ppo", "sac", "td3"]
+
 # 模型的超参数
 A2C_PARAMS = {
     "n_steps": 5, 
