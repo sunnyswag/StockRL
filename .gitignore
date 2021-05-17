@@ -6,3 +6,6 @@ tensorboard_log/
 */result/
 */nohup/
 trained_result/
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+.vscode/
