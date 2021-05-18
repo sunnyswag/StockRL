@@ -19,24 +19,17 @@ class Trainer(object):
                         total_timesteps= 200000) -> None:
         self.model_name = model_name
         self.total_timesteps = total_timesteps
-        self.sub_train_dir = "train"
-        self.sub_data_dir = "data_file"
-        self.train_dir = self.get_train_dir()
+        self.train_dir = "train"
+        self.data_dir = "data_file"
+        self.create_train_dir()
     
-    def get_train_dir(self) -> str:
-        """获取存储训练结果的路径名"""
-        train_dir = os.path.join(os.getcwd(), self.sub_train_dir)
-        self.create_train_dir(train_dir)
-
-        return train_dir
-    
-    def create_train_dir(self, train_dir: str) -> None:
+    def create_train_dir(self) -> None:
         """创建存储训练结果的文件夹"""
-        if not os.path.exists(train_dir):
-            os.makedirs(train_dir)
-            print("{} 文件夹创建成功!".format(self.sub_train_dir))
+        if not os.path.exists(self.train_dir):
+            os.makedirs(self.train_dir)
+            print("{} 文件夹创建成功!".format(self.train_dir))
         else:
-            print("{} 文件夹已存在!".format(self.sub_train_dir))
+            print("{} 文件夹已存在!".format(self.train_dir))
     
     def train(self) -> None:
         """开始训练"""
@@ -57,8 +50,8 @@ class Trainer(object):
         self.save_model(model)
     
     def get_train_data(self):
-        train_data_path = os.path.join(self.sub_data_dir, "train.csv")
-        trade_data_path = os.path.join(self.sub_data_dir, "trade.csv")
+        train_data_path = os.path.join(self.data_dir, "train.csv")
+        trade_data_path = os.path.join(self.data_dir, "trade.csv")
         if not (os.path.exists(train_data_path) or
                 os.path.exists(trade_data_path)):
             Data.pull_data()

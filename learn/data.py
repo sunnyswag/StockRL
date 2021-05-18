@@ -11,27 +11,18 @@ from utils.preprocessors import FeatureEngineer, split_data
 from utils import config
 
 class Data(object):
-    def __init__(self,
-                stock_list=config.SSE_50,
-                sub_data_dir="data_file") -> None:
+    def __init__(self, stock_list=config.SSE_50) -> None:
         self.stock_list = stock_list
-        self.sub_data_dir = sub_data_dir
-        self.data_dir = self.get_data_dir()
+        self.data_dir = "data_file"
+        self.create_data_dir()
 
-    def get_data_dir(self) -> str:
+    def create_data_dir(self) -> None:
         """"""
-        data_dir = os.path.join(os.getcwd(), self.sub_data_dir)
-        self.create_data_dir(data_dir)
-
-        return data_dir
-
-    def create_data_dir(self, data_dir: str) -> None:
-        """"""
-        if not os.path.exists(data_dir):
-            os.makedirs(data_dir)
-            print("{} 文件夹创建成功!".format(self.sub_data_dir))
+        if not os.path.exists(self.data_dir):
+            os.makedirs(self.data_dir)
+            print("{} 文件夹创建成功!".format(self.data_dir))
         else:
-            print("{} 文件夹已存在!".format(self.sub_data_dir))
+            print("{} 文件夹已存在!".format(self.data_dir))
     
     def pull_data(self) -> pd.DataFrame:
         """使用Tushare API下载股票数据并对其进行处理"""
