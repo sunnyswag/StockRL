@@ -25,7 +25,7 @@
 在终端中输入
 
 ```shell
-git clone https://github.com/sunnyswag/RL_in_Finance.git
+git clone https://github.com/sunnyswag/RL_in_Stock.git
 git pip install -r requirements.txt
 ```
 

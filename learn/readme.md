@@ -38,6 +38,6 @@ python ./trader.py -m 'a2c'
 
 **TIPS**：
 
-* 若未找到 `.model` 文件，可以在 [release]() 中进行下载
+* 若未找到 `.model` 文件，可以在 [release](https://github.com/sunnyswag/RL_in_Stock/releases/) 中进行下载
 * 回测数据保存在 `./trade_file` 文件夹中
 
