@@ -1,7 +1,7 @@
 # 强化学习交易股票
 在A股市场上，对五个深度强化学习算法进行测试，找到比较合适的深度强化学习智能体
 
-### 回测结果
+## 回测结果
 
 回测结果展示（时间跨度为2019年1月1日至2021年1月1日）
 
@@ -20,7 +20,7 @@
 
 更加详细的回测结果可以查看 [./plot_traded_result.ipynb](./plot_traded_result.ipynb)
 
-### 快速开始
+## 快速开始
 
 在终端中输入
 
@@ -31,7 +31,7 @@ git pip install -r requirements.txt
 
 进入 [./learn](./learn) 文件夹查看详细步骤
 
-### 环境设计思路
+## 环境设计思路
 
 **state_space 由三部分组成 :** 
 
@@ -55,6 +55,6 @@ git pip install -r requirements.txt
 * 正数表示买入，负数表示卖出，0 表示不进行买入卖出操作
 
 
-### Reference
+## Reference
 
 [FinRL](https://github.com/AI4Finance-LLC/FinRL)
