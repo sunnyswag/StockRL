@@ -1,10 +1,9 @@
-import pandas as pd
-import os
 import codecs
-from stable_baselines3.common.vec_env import DummyVecEnv
-from data import Data
+import os
 import sys
+import pandas as pd
 from argparse import ArgumentParser
+from stable_baselines3.common.vec_env import DummyVecEnv
 
 sys.path.append("..")
 sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
@@ -12,6 +11,7 @@ sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
 from utils import config
 from utils.env_retreat_penalty import StockTradingEnvRetreatpenalty
 from utils.models import DRL_Agent
+from data import Data
 
 
 class Trainer(object):
@@ -19,7 +19,7 @@ class Trainer(object):
                         total_timesteps= 200000) -> None:
         self.model_name = model_name
         self.total_timesteps = total_timesteps
-        self.train_dir = "train"
+        self.train_dir = "train_file"
         self.data_dir = "data_file"
         self.create_train_dir()
     
@@ -54,9 +54,14 @@ class Trainer(object):
         trade_data_path = os.path.join(self.data_dir, "trade.csv")
         if not (os.path.exists(train_data_path) or
                 os.path.exists(trade_data_path)):
-            Data.pull_data()
-
-        return pd.read_csv(train_data_path), pd.read_csv(trade_data_path)
+            print("数据不存在，开始下载")
+            Data().pull_data()
+        
+        train_data = pd.read_csv(train_data_path)
+        trade_data = pd.read_csv(trade_data_path)
+        print("数据读取成功!")
+        
+        return train_data, trade_data
 
     def get_env(self, 
                 train_data : pd.DataFrame, 

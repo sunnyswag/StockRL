@@ -17,9 +17,9 @@ from utils.models import DRL_Agent
 class Trader(object):
     def __init__(self, model_name='a2c') -> None:
         self.model_name = model_name
-        self.train_dir = "train"
+        self.train_dir = "train_file"
         self.data_dir = "data_file"
-        self.trade_dir = "result"
+        self.trade_dir = "trade_file"
         self.create_trade_dir()
     
     def create_trade_dir(self) -> None:
@@ -29,34 +29,6 @@ class Trader(object):
             print("{} 文件夹创建成功!".format(self.trade_dir))
         else:
             print("{} 文件夹已存在!".format(self.trade_dir))
-    
-    def get_trade_data(self):
-        trade_data_path = os.path.join(self.data_dir, "trade.csv")
-        if not os.path.exists(trade_data_path):
-            Data.pull_data()
-
-        return pd.read_csv(trade_data_path)
-
-    def get_env(self, trade_data : pd.DataFrame) -> DummyVecEnv:
-        """分别返回训练环境和测试环境"""
-        e_trade_gym = StockTradingEnvRetreatpenalty(df = trade_data,
-                                                    random_start = False,
-                                                    **config.ENV_PARAMS)
-        env_trade, _ = e_trade_gym.get_sb_env()
-
-        return env_trade
-    
-    def get_model(self, agent):
-        model = agent.get_model(self.model_name,  
-                                model_kwargs = config.__dict__["{}_PARAMS".format(self.model_name.upper())], 
-                                verbose = 0)
-        model_dir = os.path.join(self.train_dir, "{}.model".format(self.model_name))
-        
-        if os.path.exists(model_dir):
-            model.load(model_dir)
-            return model
-        else:
-            return None
 
     def trade(self) -> None:
         """使用训练好的模型进行交易"""
@@ -74,6 +46,36 @@ class Trader(object):
         else:
             print("{} 文件夹中未找到 {} model，请先运行 trainer.py 或者将训练好的 {} model 放入 {} 中"
             .format(self.train_dir, self.model_name, self.model_name, self.train_dir))
+    
+    def get_trade_data(self):
+        trade_data_path = os.path.join(self.data_dir, "trade.csv")
+        if not os.path.exists(trade_data_path):
+            print("数据不存在，开始下载")
+            Data().pull_data()
+        
+        trade_data = pd.read_csv(trade_data_path)
+        print("数据读取成功!")
+        
+        return trade_data
+
+    def get_env(self, trade_data : pd.DataFrame) -> DummyVecEnv:
+        """分别返回训练环境和测试环境"""
+        e_trade_gym = StockTradingEnvRetreatpenalty(df = trade_data,
+                                                    random_start = False,
+                                                    **config.ENV_PARAMS)
+        return e_trade_gym
+    
+    def get_model(self, agent):
+        model = agent.get_model(self.model_name,  
+                                model_kwargs = config.__dict__["{}_PARAMS".format(self.model_name.upper())], 
+                                verbose = 0)
+        model_dir = os.path.join(self.train_dir, "{}.model".format(self.model_name))
+        
+        if os.path.exists(model_dir):
+            model.load(model_dir)
+            return model
+        else:
+            return None
     
     def save_trade_result(self, 
                     df_account_value : pd.DataFrame, 
