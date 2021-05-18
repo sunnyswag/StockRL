@@ -1,16 +1,12 @@
+from typing import Any
 import pandas as pd
 import numpy as np
 import time
-import gym
-
-from stable_baselines3.ppo import MlpPolicy
-from stable_baselines3.common.vec_env import DummyVecEnv
 
 from stable_baselines3 import DDPG
 from stable_baselines3 import A2C
 from stable_baselines3 import PPO
 from stable_baselines3 import TD3
-from stable_baselines3.td3.policies import MlpPolicy
 from stable_baselines3 import SAC
 from stable_baselines3.common.noise import NormalActionNoise, OrnsteinUhlenbeckActionNoise
 
@@ -27,12 +23,17 @@ NOISE = {
 }
 
 class DRL_Agent():
-    """
+    """强化学习交易智能体
 
+    Attributes:
+        env: 强化学习环境
     """
 
     @staticmethod
-    def DRL_prediction(model, environment):
+    def DRL_prediction(
+        model: Any, environment: Any
+        ) -> pd.DataFrame:
+        """回测函数"""
         test_env, test_obs = environment.get_sb_env()
 
         account_memory = []
@@ -51,17 +52,18 @@ class DRL_Agent():
                 break
         return account_memory[0], actions_memory[0]
 
-    def __init__(self, env):
+    def __init__(self, env: Any) -> None:
         self.env = env
 
     def get_model(
         self,
-        model_name,
-        policy = "MlpPolicy",
-        policy_kwargs = None,
-        model_kwargs = None,
-        verbose = 1
-    ):
+        model_name: str,
+        policy: str = "MlpPolicy",
+        policy_kwargs: dict = None,
+        model_kwargs: dict = None,
+        verbose: int = 1
+    ) -> Any:
+        """根据超参数生成模型"""
         if model_name not in MODELS:
             raise NotImplementedError("NotImplementedError")
         
@@ -86,36 +88,12 @@ class DRL_Agent():
         
         return model
 
-    def train_model(self, model, tb_log_name, total_timesteps = 5000):
+    def train_model(
+        self, model: Any, tb_log_name: str, total_timesteps: int = 5000
+        ) -> Any:
+        """训练模型"""
         model = model.learn(total_timesteps=total_timesteps, tb_log_name=tb_log_name)
         return model
-    
-# TODO
-class DRLEnsembleAgent:
-
-    @staticmethod
-    def get_model():
-        pass
-
-    @staticmethod
-    def train_model():
-        pass
-
-    @staticmethod
-    def get_validation_sharpe():
-        pass
-
-    def __init__(self):
-        pass
-
-    def DRL_validation(self):
-        pass
-
-    def DRL_prediction(self):
-        pass
-
-    def run_ensemble_strategy(self):
-        pass
 
 if __name__ == "__main__":
     from pull_data import Pull_data

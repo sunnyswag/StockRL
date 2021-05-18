@@ -9,7 +9,7 @@ sys.path.append("..")
 sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
 
 from utils import config
-from utils.env_retreat_penalty import StockTradingEnvRetreatpenalty
+from utils.env import StockLearningEnv
 from utils.models import DRL_Agent
 from data import Data
 
@@ -75,12 +75,12 @@ class Trainer(object):
                 train_data: pd.DataFrame, 
                 trade_data: pd.DataFrame) -> DummyVecEnv:
         """分别返回训练环境和交易环境"""
-        e_train_gym = StockTradingEnvRetreatpenalty(df = train_data,
+        e_train_gym = StockLearningEnv(df = train_data,
                                                     random_start = True,
                                                     **config.ENV_PARAMS)
         env_train, _ = e_train_gym.get_sb_env()
 
-        e_trade_gym = StockTradingEnvRetreatpenalty(df = trade_data,
+        e_trade_gym = StockLearningEnv(df = trade_data,
                                                     random_start = False,
                                                     **config.ENV_PARAMS)
         env_trade, _ = e_trade_gym.get_sb_env()

@@ -1,18 +1,3 @@
-"""
-    Save_Data : 是否保存数据
-    Dir_Data : 存放数据的目录
-    Tushare_Tocken : 使用 Tushare API 下载文件时所需要用到的 tocken
-    Start_Date : 数据开始下载的日期
-    End_Date : 数据截止下载的日期
-    TECHNICAL_INDICATORS_LIST : 技术指标列表
-
-    SSE_50 : 上证 50 成分股
-    CSI_300 : 沪深 300 成分股
-"""
-
-Save_Data = False # 是否保存数据
-Dir_Data = "datasets" # 存放数据的目录
-
 # 使用 Tushare API 下载文件时所需要用到的 tocken
 Tushare_Tocken = "c576df5b626df4f37c30bae84520d70c7945a394d7ee274ef2685444"
 
@@ -20,6 +5,7 @@ Tushare_Tocken = "c576df5b626df4f37c30bae84520d70c7945a394d7ee274ef2685444"
 Start_Date = '20090101'
 End_Date = '20210101'
 
+# 日期的另一种形式
 Start_Trade_Date = "2009-01-01"
 End_Trade_Date = "2019-01-01"
 End_Test_Date = "2021-01-01"
@@ -30,6 +16,7 @@ TECHNICAL_INDICATORS_LIST = [
     "macd", "volume_20_sma", "volume_60_sma", "volume_120_sma"
 ]
 
+# 强化学习模型列表
 MODEL_LIST = ["a2c", "ddpg", "ppo", "sac", "td3"]
 
 # 模型的超参数
@@ -67,7 +54,6 @@ information_cols = TECHNICAL_INDICATORS_LIST + ["close", "day", "amount", "chang
 ENV_PARAMS = {
     "initial_amount": 1e6,
     "hmax": 5000, 
-    "turbulence_threshold": None, 
     "currency": '￥',
     "buy_cost_pct": 3e-3,
     "sell_cost_pct": 3e-3,
@@ -77,9 +63,10 @@ ENV_PARAMS = {
     "patient":True,
 }
 
+# tensorboard_log 路径
 TENSORBOARD_LOG_DIR = f"tensorboard_log"
 
-# 上证 50 指数和成分股
+# 上证 50 指数及其成分股
 SSE_50_INDEX = ["000016.SH"]
 SSE_50 = [
     "600000.SH",

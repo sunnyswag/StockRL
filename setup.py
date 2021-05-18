@@ -20,12 +20,9 @@ setup(
     url="https://github.com/sunnyswag/RL_in_Finance",
     license="GNU",
     packages=find_packages(),
-    #install_requires=REQUIRES,
     install_requires=REQUIRES,
-    description="使用DRL，来进行金融交易",
+    description="使用DRL，交易股票",
     classifiers=[
-        # Trove classifiers
-        # Full list: https://pypi.python.org/pypi?%3Aaction=list_classifiers
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",

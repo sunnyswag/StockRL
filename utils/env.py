@@ -1,478 +1,358 @@
+from typing import Any, List, Tuple
 import numpy as np
 import pandas as pd
-from gym.utils import seeding
+import random
+from copy import deepcopy
 import gym
+import time
 from gym import spaces
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import pickle
-from stable_baselines3.common.vec_env import DummyVecEnv
+
+from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
 from stable_baselines3.common import logger
 
-# TODO 
-# add Readme and description
-class Stock_Trading_Env(gym.Env):
-    """构建股票交易环境的类，继承自 gym.Env
-    Attributes
-    ----------
-        df : pd.DataFrame
-            用于训练的数据集
-        stock_dim : int
-            交易时所涉及到的股票数量
-        hmax : int
-            可进行交易的最大数量
-        initial_amount : int
-            初始资金量
-        buy_cost_pct : float
-            买股票时的手续费
-        sell_cost_pct : float
-            卖股票时的手续费
-        reward_scaling : float
-            reward * reward_scaling 再输入到 model 中
-        state_space : int
-            状态空间 # TODO
-            由四部分组成 : 
-                1、今天的资金量
-                2、每只股票今天的收盘价
-                3、每只股票当前的持仓量
-                4、股票数*技术指标数
-        action_space : int
-            交易时所涉及到的股票数量
-        tech_indicator_list : List
-            技术指标列表
-        turbulence_threshold : None
-        make_plots : boolean
-            是否作图
-        print_verbosity = 10,
-        day : int
-            天数，由于日期相同时使用的是相同的 index, 
-            所以通过 day 这个索引可以取到天数相同的所有股票行
-        initial = True,
-        previous_state : list
-            上一个状态
-        model_name = '',
-        mode = '',
-        iteration = ''
-    
-    Methods
-    -------
+class StockLearningEnv(gym.Env):
+    """构建强化学习交易环境
 
-    Description
-    -----------
-    # TODO
-    交易环境为：每次从 day 0 训练到 ady -1 ？？？
-    Reward 的定义：reward 定义为初始状态-当天交易后的状态，
-        Reward 就成了每次交易的手续费，这怎么合理呢（实际测试 Reward == Cost）
-        但是 total_reward 的计算方式却是 terminal 时的 总资产 - 起始资金
-        于是训练完成的情况就是买入并持有，交易次数不发生变化
+        Attributes
+            df: 构建环境时所需要用到的行情数据
+            buy_cost_pct: 买股票时的手续费
+            sell_cost_pct: 卖股票时的手续费
+            date_col_name: 日期列的名称
+            hmax: 最大可交易的数量
+            print_verbosity: 打印的频率
+            initial_amount: 初始资金量
+            daily_information_cols: 构建状态时所考虑的列
+            cache_indicator_data: 是否把数据放到内存中
+            random_start: 是否随机位置开始交易（训练和回测环境分别为True和False）
+            patient: 是否在资金不够时不执行交易操作，等到有足够资金时再执行
+            currency: 货币单位
     """
 
-    def __init__(self,
-                df,
-                stock_dim,
-                hmax,
-                initial_amount,
-                buy_cost_pct,
-                sell_cost_pct,
-                reward_scaling,
-                state_space,
-                action_space,
-                tech_indicator_list,
-                turbulence_threshold = None,
-                make_plots = False,
-                print_verbosity = 10,
-                day = 0,
-                initial = True,
-                previous_state = [],
-                model_name = '',
-                mode = '',
-                iteration = ''
-    ):
+    metadata = {"render.modes": ["human"]}
+    def __init__(
+        self,
+        df: pd.DataFrame,
+        buy_cost_pct: float = 3e-3,
+        sell_cost_pct: float = 3e-3,
+        date_col_name: str = "date",
+        hmax: int = 10,
+        print_verbosity: int = 10,
+        initial_amount: int = 1e6,
+        daily_information_cols: List = ["open", "close", "high", "low", "volume"],
+        cache_indicator_data: bool = True,
+        random_start: bool = True,
+        patient: bool = False,
+        currency: str = "￥"
+    ) -> None:
         self.df = df
-        self.stock_dim = stock_dim
+        self.stock_col = "tic"
+        self.assets = df[self.stock_col].unique()
+        self.dates = df[date_col_name].sort_values().unique()
+        self.random_start = random_start
+        self.patient = patient
+        self.currency = currency
+        self.df = self.df.set_index(date_col_name)
         self.hmax = hmax
         self.initial_amount = initial_amount
+        self.print_verbosity = print_verbosity
         self.buy_cost_pct = buy_cost_pct
         self.sell_cost_pct = sell_cost_pct
-        self.reward_scaling = reward_scaling
-        self.state_space = state_space
-        self.action_space = action_space
-        self.tech_indicator_list = tech_indicator_list
-        self.turbulence_threshold = turbulence_threshold
-        self.make_plots = make_plots
-        self.print_verbosity = print_verbosity
-        self.day = day
-        self.initial = initial
-        self.previous_state = previous_state
-        self.model_name = model_name,
-        self.mode = mode
-        self.iteration = iteration
-        self.terminal = False
-
-        # 初始化相关的变量
-        self.data = self.df.loc[self.day, :]
-        self.multi_stocks = len(self.df.tic.unique()) > 1
-        
-        # 初始化 Gym enviroment
-        self.action_space = spaces.Box(low=-1, high=1, shape=(self.action_space,))
-        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(self.state_space,))
-        self.state = self._initiate_state()
-
-        # 初始化变量
-        self.reward = 0
+        self.daily_information_cols = daily_information_cols
+        self.state_space = (
+            1 + len(self.assets) + len(self.assets) * len(self.daily_information_cols)
+        )
+        self.action_space = spaces.Box(low=-1, high=1, shape=(len(self.assets),))
+        self.observation_space = spaces.Box(
+            low=-np.inf, high=np.inf, shape=(self.state_space,)
+        )
         self.turbulence = 0
-        self.cost = 0
-        self.trades = 0
-        self.episode = 0
-
-        # 初始化存储数据的 List
-        self.asset_memory = [self.initial_amount]
-        self.rewards_memory = []
-        self.actions_memory = []
-        self.date_memory = [self._get_date()]
-        self._seed()
+        self.episode = -1
+        self.episode_history = []
+        self.printed_header = False
+        self.cache_indicator_data = cache_indicator_data
+        self.cached_data = None
+        self.max_total_assets = 0
+        if self.cache_indicator_data:
+            """cashing data 的结构:
+               [[date1], [date2], [date3], ...]
+               date1 : [stock1 * cols, stock2 * cols, ...]
+            """
+            print("加载数据缓存")
+            self.cached_data = [
+                self.get_date_vector(i) for i, _ in enumerate(self.dates)
+            ]
+            print("数据缓存成功!")
+        
+    def seed(self, seed: Any = None) -> None:
+        """设置随机种子"""
+        if seed is None:
+            seed = int(round(time.time() * 1000))
+        random.seed(seed)
     
-    def _sell_stock(self, index, action):
+    @property
+    def current_step(self) -> int:
+        """当前回合的运行步数"""
+        return self.date_index - self.starting_point
+    
+    @property
+    def cash_on_hand(self) -> float:
+        """当前拥有的现金"""
+        return self.state_memory[-1][0]
+    
+    @property
+    def holdings(self) -> List:
+        """当前的持仓数据"""
+        return self.state_memory[-1][1: len(self.assets) + 1]
 
-        def _do_sell_normal():
-            # 当前股价 > 0 并且 当前有持仓的情况下才可以卖出
-            if self.state[index + 1] > 0 and self.state[index + 1 + self.stock_dim] > 0:
-                sell_num_shares = min(abs(action), self.state[index + 1 + self.stock_dim])
-                # 股价 * 股票数 * (1- 手续费)
-                sell_amount = self.state[index + 1] * sell_num_shares * (1 - self.sell_cost_pct)
-                # 更新数据
-                self.state[0] += sell_amount
-                self.state[index + 1 + self.stock_dim] -= sell_num_shares
-                self.cost += self.state[index + 1] * sell_num_shares * self.sell_cost_pct
-                self.trades += 1
-            else :
-                sell_num_shares = 0
-            
-            return sell_num_shares
-        
-        if self.turbulence_threshold is None:
-            sell_num_shares = _do_sell_normal()
+    @property
+    def closings(self) -> List:
+        """每支股票当前的收盘价"""
+        return np.array(self.get_date_vector(self.date_index, cols=["close"]))
+
+    def get_date_vector(self, date: int, cols: List = None) -> List:
+        """获取 date 那天的行情数据"""
+        if(cols is None) and (self.cached_data is not None):
+            return self.cached_data[date]
         else:
-            # TODO
-            pass
-        
-        return sell_num_shares
-
-    def _buy_stock(self, index, action):
-        
-        def _do_buy():
-            # 股价 > 0 时执行买操作
-            if self.state[index + 1] > 0:
-                buy_num_shares = min(self.state[0] // self.state[index + 1], action)
-                buy_amount = self.state[index + 1] * buy_num_shares * (1 + self.buy_cost_pct)
-                # 更新数据
-                self.state[0] -= buy_amount
-                self.state[index + 1 + self.stock_dim] += buy_num_shares
-                self.cost += self.state[index + 1] * buy_num_shares * self.buy_cost_pct
-                self.trades += 1
-            else :
-                buy_num_shares = 0
-            
-            return buy_num_shares
-        
-        if self.turbulence_threshold is None:
-            buy_num_shares = _do_buy()
+            date = self.dates[date]
+            if cols is None:
+                cols = self.daily_information_cols
+            trunc_df = self.df.loc[[date]]
+            res = []
+            for asset in self.assets:
+                tmp_res = trunc_df[trunc_df[self.stock_col] == asset]
+                res += tmp_res.loc[date, cols].tolist()
+            assert len(res) == len(self.assets) * len(cols)
+            return res
+    
+    def reset(self) -> np.ndarray:
+        self.seed()
+        self.sum_trades = 0
+        self.max_total_assets = self.initial_amount
+        if self.random_start:
+            self.starting_point = random.choice(range(int(len(self.dates) * 0.5)))
         else:
-            if self.turbulence < self.turbulence_threshold:
-                buy_num_shares = _do_buy()
-            else:
-                buy_num_shares = 0
-                pass
-        
-        return buy_num_shares
-
-    def _make_plot(self):
-        plt.plot(self.asset_memory, 'r')
-        plt.savefig('results/account_value_trade_{}.png'.format(self.episode))
-        plt.close()
-
-    def step(self, actions):
-        self.terminal = self.day >= len(self.df.index.unique()) - 1
-        if self.terminal:
-            if self.make_plots:
-                self._make_plot()
-            
-            # 计算最终的资产
-            end_total_asset = self.state[0] + \
-                sum(np.array(self.state[1: (self.stock_dim + 1)]) * \
-                    np.array(self.state[(self.stock_dim + 1): (self.stock_dim * 2 + 1)]))
-
-            total_reward = end_total_asset - self.initial_amount
-
-            # 使用 pandas 来存储最终的数据
-            df_total_value = pd.DataFrame(self.asset_memory)
-            df_total_value.columns = ['account_value']
-            df_total_value['date'] = self.date_memory
-            # pct_change；计算改变的百分比
-            df_total_value['daily_return'] = df_total_value['account_value'].pct_change(1)
-
-            if df_total_value['daily_return'].std() != 0:
-                sharpe = (252 ** 0.5) * df_total_value['daily_return'].mean() /\
-                    df_total_value['daily_return'].std()
-            
-            df_rewards = pd.DataFrame(self.rewards_memory)
-            df_rewards.columns = ['account_rewards']
-            df_rewards['date'] = self.date_memory[:-1]
-
-            if self.episode % self.print_verbosity == 0:
-                print("天数: {}天, episode: {}".format(self.day, self.episode))
-                print("开始时的总资产: {}".format(round(self.asset_memory[0], 2)))
-                print("结束时的总资产: {}".format(round(end_total_asset, 2)))
-                print("总奖励值: {}".format(round(total_reward, 2)))
-                print("总的手续费: {}".format(round(self.cost, 2)))
-                print("总的交易次数: {}".format(self.trades))
-                if df_total_value['daily_return'].std() != 0:
-                    print("Sharpe: {}".format(round(sharpe, 3)))
-                print("=============================")
-        
-            if self.model_name != '' and self.mode != '':
-                pass
-            
-            logger.record("environment/portfolio_value", end_total_asset)
-            logger.record("environment/total_reward", total_reward)
-            logger.record("environment/total_reward_pct", (total_reward / (end_total_asset - total_reward)) * 100)
-            logger.record("environment/total_cost", self.cost)
-            logger.record("environment/total_trades", self.trades)
-        
-            return self.state, self.reward, self.terminal, {}
-
-        else:
-            # actions∈[-1, 1], 乘上 hmax 得到实际交易的股票数
-            actions = (actions * self.hmax).astype(int)
-            
-            if self.turbulence_threshold is not None and self.turbulence >= self.turbulence_threshold:
-                actions = np.array([self.hmax * (-1)] * self.stock_dim)
-            # 计算初始资产，计算方式：现金 + 持仓的股票市值
-            # np.array([]) * np.array([]) 对应的列相乘
-            # 如：np.array([1, 2]) * np.array([1, 2]) = np.array([1, 4])
-            begin_total_asset = self.state[0] + \
-                sum(np.array(self.state[1: (self.stock_dim + 1)]) * \
-                    np.array(self.state[(self.stock_dim + 1): (self.stock_dim * 2 + 1)]))
-
-            # np.argsort : 按照 index 进行排序
-            # actions : np.array([1,2,5,3,10,8])
-            # arg_actions : array([0, 1, 3, 2, 5, 4], dtype=int64)
-            argsort_actions = np.argsort(actions)
-            mid_index = np.where(actions < 0)[0].shape[0]
-            sell_index = argsort_actions[: mid_index]
-            buy_index = argsort_actions[mid_index:]
-
-            # 执行卖操作
-            for index in sell_index:
-                # 返回值为实际进行买卖的成交量
-                actions[index] = self._sell_stock(index, actions[index]) * (-1)
-
-            # 执行买操作
-            for index in buy_index:
-                # 返回值为实际进行买卖的成交量
-                actions[index] = self._buy_stock(index, actions[index])
-
-            # 计算 reward
-            end_total_asset = self.state[0] + \
-                sum(np.array(self.state[1: (self.stock_dim + 1)]) * \
-                    np.array(self.state[(self.stock_dim + 1): (self.stock_dim * 2 + 1)]))
-            self.reward = end_total_asset - begin_total_asset
-
-            # 添加新数据
-            self.actions_memory.append(actions)
-            self.asset_memory.append(end_total_asset)
-            self.date_memory.append(self._get_date())
-            self.rewards_memory.append(self.reward)
-            
-            # 更新 day 和 state
-            self.day += 1
-            self.data = self.df.loc[self.day, :]
-            if self.turbulence_threshold is not None:
-                self.turbulence = self.data['turbulence'].value[0]
-            self.state = self._update_state()
-
-            self.reward = self.reward * self.reward_scaling
-        
-        return self.state, self.reward, self.terminal, {}
-
-    def reset(self):
-        self.state = self._initiate_state()
-
-        if self.initial:
-            self.asset_memory = [self.initial_amount]
-        else:
-            previous_total_asset = self.previous_state[0] +\
-                sum(np.array(self.state[1:(self.stock_dim + 1)]) * \
-                    np.array(self.previous_state[(self.stock_dim + 1) : (self.stock_dim * 2 + 1)]))
-            self.asset_memory = [previous_total_asset]
-
-        self.day = 0
-        self.data = self.df.loc[self.day, :]
+            self.starting_point = 0
+        self.date_index = self.starting_point
         self.turbulence = 0
-        self.cost = 0
-        self.trades = 0
-        self.terminal = False
-        self.rewards_memory = []
-        self.actions_memory = []
-        self.date_memory = [self._get_date()]
-
         self.episode += 1
+        self.actions_memory = []
+        self.transaction_memory = []
+        self.state_memory = []
+        self.account_information = {
+            "cash": [],
+            "asset_value": [],
+            "total_assets": [],
+            "reward": []
+        }
+        init_state = np.array(
+            [self.initial_amount] 
+            + [0] * len(self.assets)
+            + self.get_date_vector(self.date_index)
+        )
+        self.state_memory.append(init_state)
+        return init_state
 
-        return self.state
-
-    def render(self, mode='human', close=False):
-        return self.state
-
-    def _initiate_state(self):
-        # 初始化数据
-        if self.initial:
-            # 多只股票
-            if self.multi_stocks:
-                state = [self.initial_amount] + \
-                        self.data["close"].values.tolist() + \
-                        [0] * self.stock_dim + \
-                        sum([self.data[tech].values.tolist() for tech in self.tech_indicator_list], []) + \
-                        self.data["volume"].values.tolist()
-                        # sum([[1, 2], [3, 4]] ,[]) = [1, 2, 3, 4]
-            # 单只股票
-            else:
-                state = [self.initial_amount] + \
-                        [self.data["close"]] + \
-                        [0] * self.stock_dim + \
-                        sum([[self.data[tech]] for tech in self.tech_indicator_list], []) + \
-                        [self.data["volume"]]
-        # 使用过去的数据
-        else:
-            # 多只股票
-            if self.multi_stocks:
-                state = [self.previous_state[0]] + \
-                        self.data["close"].values.tolist() + \
-                        self.previous_state[(self.stock_dim + 1) : (self.stock_dim * 2 + 1)] + \
-                        sum([self.data[tech].values.tolist() for tech in self.tech_indicator_list], []) + \
-                        self.data["volume"].values.tolist()
-            # 单只股票
-            else:
-                state = [self.previous_state[0]] + \
-                        [self.data["close"]] + \
-                        self.previous_state[(self.stock_dim + 1) : (self.stock_dim * 2 + 1)] + \
-                        sum([[self.data[tech]] for tech in self.tech_indicator_list], []) + \
-                        [self.data["volume"]]
-
-        return state
-
-    def _update_state(self):
-        if self.multi_stocks:
-            # 现金量和持仓量在进行交易的时候已经更新了
-            state = [self.state[0]] + \
-                    self.data["close"].values.tolist() + \
-                    list(self.state[(self.stock_dim + 1): (self.stock_dim * 2 + 1)]) + \
-                    sum([self.data[tech].values.tolist() for tech in self.tech_indicator_list], []) + \
-                    self.data["volume"].values.tolist()
-        else:
-            state = [self.state[0]] + \
-                    [self.data["close"]] + \
-                    list(self.state[(self.stock_dim + 1): (self.stock_dim * 2 + 1)]) + \
-                    sum([[self.data[tech]] for tech in self.tech_indicator_list], []) + \
-                    [self.data["volume"]]
+    def log_step(
+        self, reason: str, terminal_reward: float=None
+        ) -> None:
+        """打印"""
+        if terminal_reward is None:
+            terminal_reward = self.account_information["reward"][-1]
         
-        return state
+        assets = self.account_information["total_assets"][-1]
+        tmp_retreat_ptc = assets / self.max_total_assets - 1
+        retreat_pct = tmp_retreat_ptc if assets < self.max_total_assets else 0
+        gl_pct = self.account_information["total_assets"][-1] / self.initial_amount
 
-    def _get_date(self):
-        if self.multi_stocks:
-            date = self.data.date.unique()[0]
+        rec = [
+            self.episode,
+            self.date_index - self.starting_point,
+            reason,
+            f"{self.currency}{'{:0,.0f}'.format(float(self.account_information['cash'][-1]))}",
+            f"{self.currency}{'{:0,.0f}'.format(float(assets))}",
+            f"{terminal_reward*100:0.5f}%",
+            f"{(gl_pct - 1)*100:0.5f}%",
+            f"{retreat_pct*100:0.2f}%"
+        ]
+        self.episode_history.append(rec)
+        print(self.template.format(*rec))
+
+    def return_terminal(
+        self, reason: str = "Last Date", reward: int = 0
+    ) -> Tuple[List, float, bool, dict]:
+        """terminal 的时候执行的操作"""
+        state = self.state_memory[-1]
+        self.log_step(reason=reason, terminal_reward=reward)
+        gl_pct = self.account_information["total_assets"][-1] / self.initial_amount
+        logger.record("environment/GainLoss_pct", (gl_pct - 1) * 100)
+        logger.record(
+            "environment/total_assets",
+            int(self.account_information["total_assets"][-1])
+        )
+        reward_pct = gl_pct
+        logger.record("environment/total_reward_pct", (reward_pct - 1) * 100)
+        logger.record("environment/total_trades", self.sum_trades)
+        logger.record(
+            "environment/avg_daily_trades",
+            self.sum_trades / (self.current_step)
+        )
+        logger.record(
+            "environment/avg_daily_trades_per_asset",
+            self.sum_trades / (self.current_step) / len(self.assets)
+        )
+        logger.record("environment/completed_steps", self.current_step)
+        logger.record(
+            "environment/sum_rewards", np.sum(self.account_information["reward"])
+        )
+        logger.record(
+            "environment/retreat_proportion",
+            self.account_information["total_assets"][-1] / self.max_total_assets
+        )
+
+        return state, reward, True, {}
+
+    def log_header(self) -> None:
+        """Log 的列名"""
+        if not self.printed_header:
+            self.template = "{0:4}|{1:4}|{2:15}|{3:15}|{4:15}|{5:10}|{6:10}|{7:10}"
+            # 0, 1, 2, ... 是序号
+            # 4, 4, 15, ... 是占位格的大小
+            print(
+                self.template.format(
+                    "EPISODE",
+                    "STEPS",
+                    "TERMINAL_REASON",
+                    "CASH",
+                    "TOT_ASSETS",
+                    "TERMINAL_REWARD",
+                    "GAINLOSS_PCT",
+                    "RETREAT_PROPORTION"
+                )
+            )
+            self.printed_header = True
+
+    def get_reward(self) -> float:
+        """获取奖励值"""
+        if self.current_step == 0:
+            return 0
         else:
-            date = self.data.date
+            assets = self.account_information["total_assets"][-1]
+            retreat = 0
+            if assets >= self.max_total_assets:
+                self.max_total_assets = assets
+            else:
+                retreat = assets / self.max_total_assets - 1
+            reward = assets / self.initial_amount - 1
+            reward += retreat
+            return reward
+
+    def get_transactions(self, actions: np.ndarray) -> np.ndarray:
+        """获取实际交易的股数"""
+        self.actions_memory.append(actions)
+        actions = actions * self.hmax
+
+        # 收盘价为 0 的不进行交易
+        actions = np.where(self.closings > 0, actions, 0)
+
+        # 去除被除数为 0 的警告
+        out = np.zeros_like(actions)
+        zero_or_not = self.closings != 0
+        actions = np.divide(actions, self.closings, out=out, where = zero_or_not)
         
-        return date
+        # 不能卖的比持仓的多
+        actions = np.maximum(actions, -np.array(self.holdings))
 
-    def save_asset_memory(self):
-        return pd.DataFrame({
-            'date': self.date_memory,
-            'account_value': self.asset_memory
-        })
+        # 将 -0 的值全部置为 0
+        actions[actions == -0] = 0
 
-    def save_action_memory(self):
-        if self.multi_stocks:
-            # 让 date 和 close_price 有相同的长度
-            date_list = self.date_memory[:-1]
-            df_date = pd.DataFrame(date_list)
-            df_date.columns = ['date']
+        return actions
 
-            action_list = self.actions_memory
-            df_actions = pd.DataFrame(action_list)
-            df_actions.columns = self.data.tic.values
-            df_actions.index = df_date.date
+    def step(
+        self, actions: np.ndarray
+    ) -> Tuple[List, float, bool, dict]:
+        self.sum_trades += np.sum(np.abs(actions))
+        self.log_header()
+        if(self.current_step + 1) % self.print_verbosity == 0:
+            self.log_step(reason="update")
+        if self.date_index == len(self.dates) - 1:
+            return self.return_terminal(reward=self.get_reward())
         else:
-            date_list = self.date_memory[:-1]
-            action_list = self.actions_memory
-            df_actions = pd.DataFrame({
-                'date': date_list, 'actions':action_list
-            })
-        return df_actions
+            begin_cash = self.cash_on_hand
+            assert min(self.holdings) >= 0
+            assert_value = np.dot(self.holdings, self.closings)
+            self.account_information["cash"].append(begin_cash)
+            self.account_information["asset_value"].append(assert_value)
+            self.account_information["total_assets"].append(begin_cash + assert_value)
+            reward = self.get_reward()
+            self.account_information["reward"].append(reward)
 
-    def _seed(self, seed=None):
-        self.np_random, seed = seeding.np_random(seed)
-        return [seed]
+            transactions = self.get_transactions(actions)
+            sells = -np.clip(transactions, -np.inf, 0)
+            proceeds = np.dot(sells, self.closings)
+            costs = proceeds * self.sell_cost_pct
+            coh = begin_cash + proceeds # 计算现金的数量
 
-    def get_sb_env(self):
-        e = DummyVecEnv([lambda: self])
+            buys = np.clip(transactions, 0, np.inf)
+            spend = np.dot(buys, self.closings)
+            costs += spend * self.buy_cost_pct
+
+            if (spend + costs) > coh: # 如果买不起
+                if self.patient:
+#                     self.log_step(reason="CASH SHORTAGE")
+                    transactions = np.where(transactions > 0, 0, transactions)
+                    spend = 0
+                    costs = 0
+                else:
+                    return self.return_terminal(
+                        reason="CASH SHORTAGE", reward=self.get_reward()
+                    )
+            self.transaction_memory.append(transactions)
+            assert (spend + costs) <= coh
+            coh = coh - spend - costs
+            holdings_updated = self.holdings + transactions
+            self.date_index += 1
+            state = (
+                [coh] + list(holdings_updated) + self.get_date_vector(self.date_index)
+            )
+            self.state_memory.append(state)
+            return state, reward, False, {}
+
+    def get_sb_env(self) -> Tuple[Any, Any]:
+        def get_self():
+            return deepcopy(self)
+        
+        e = DummyVecEnv([get_self])
         obs = e.reset()
         return e, obs
 
-if __name__ == "__main__":
-    from utils.pull_data import Pull_data
-    from utils.preprocessors import FeatureEngineer, split_data
-    from utils import config
-    import time
-
-    # 拉取数据
-    df = Pull_data(config.SSE_50[:2], save_data=False).pull_data()
-    df = FeatureEngineer().preprocess_data(df)
-    df = split_data(df, '2009-01-01','2019-01-01')
-    print(df.head())
-
-    # 处理超参数
-    stock_dimension = len(df.tic.unique()) # 2
-    state_space = 1 + 2*stock_dimension + \
-        len(config.TECHNICAL_INDICATORS_LIST)*stock_dimension # 23
-    print("stock_dimension: {}, state_space: {}".format(stock_dimension, state_space))
-    env_kwargs = {
-        "stock_dim": stock_dimension, 
-        "hmax": 100, 
-        "initial_amount": 1000000, 
-        "buy_cost_pct": 0.001,
-        "sell_cost_pct": 0.001,
-        "reward_scaling": 1,
-        "state_space": state_space, 
-        "action_space": stock_dimension, 
-        "tech_indicator_list": config.TECHNICAL_INDICATORS_LIST
-    }
-
-    # 测试环境
-    e_train_gym = Stock_Trading_Env(df = df, **env_kwargs)
-
-    ### 测试一次
-    # observation = e_train_gym.reset()
-    # print("reset_observation: ", observation)
-    # action = e_train_gym.action_space.sample()
-    # print("action: ", action)
-    # observation_later, reward, done, _ = e_train_gym.step(action)
-    # print("observation_later: ", observation_later)
-    # print("reward: {}, done: {}".format(reward, done))
-
-    ### 多次测试
-    observation = e_train_gym.reset()       #初始化环境，observation为环境状态
-    count = 0
-    total_reward = 0
-    for t in range(10):
-        action = e_train_gym.action_space.sample()  #随机采样动作
-        observation, reward, done, info = e_train_gym.step(action)  #与环境交互，获得下一个state的值
-        total_reward += reward
-        if done:             
-            break
-        count+=1
-        time.sleep(0.2)      #每次等待 0.2s
-    print("observation: ", observation)
-    print("e_train_gym.cost: ", e_train_gym.cost)
-    print("reward: {}, done: {}".format(total_reward, done))
+    def get_multiproc_env(
+        self, n: int = 10
+    ) -> Tuple[Any, Any]:
+        def get_self():
+            return deepcopy(self)
+        
+        e = SubprocVecEnv([get_self for _ in range(n)], start_method="fork")
+        obs = e.reset()
+        return e, obs
+    
+    def save_asset_memory(self) -> pd.DataFrame:
+        if self.current_step == 0:
+            return None
+        else:
+            self.account_information["date"] = self.dates[
+                -len(self.account_information["cash"]):
+            ]
+            return pd.DataFrame(self.account_information)
+    
+    def save_action_memory(self) -> pd.DataFrame:
+        if self.current_step == 0:
+            return None
+        else:
+            return pd.DataFrame(
+                {
+                    "date": self.dates[-len(self.account_information["cash"]):],
+                    "actions": self.actions_memory,
+                    "transactions": self.transaction_memory
+                }
+            )

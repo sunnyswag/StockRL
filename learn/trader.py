@@ -10,7 +10,7 @@ sys.path.append("..")
 sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
 
 from utils import config
-from utils.env_retreat_penalty import StockTradingEnvRetreatpenalty
+from utils.env import StockLearningEnv
 from utils.models import DRL_Agent
 
 
@@ -67,7 +67,7 @@ class Trader(object):
 
     def get_env(self, trade_data: pd.DataFrame) -> DummyVecEnv:
         """获取交易环境"""
-        e_trade_gym = StockTradingEnvRetreatpenalty(df = trade_data,
+        e_trade_gym = StockLearningEnv(df = trade_data,
                                                     random_start = False,
                                                     **config.ENV_PARAMS)
         return e_trade_gym
