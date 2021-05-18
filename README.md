@@ -5,7 +5,7 @@
 
 回测结果展示（时间跨度为2019年1月1日至2021年1月1日）
 
-![result_picture.png](./assets/result_picture.png)
+<img width="750" src="./assets/result_picture.png" alt="reward.png"/>
 
 回测结果分析表（时间跨度为2019年1月1日至2021年1月1日，baseline 为上证50指数）
 
@@ -44,9 +44,9 @@ git pip install -r requirements.txt
 
 **reward 的计算方式：**
 
-* 累计收益率 - 当前回撤率
+* Reward = 累计收益率 - 当前回撤率
 
-  ![reward.png](./assets/reward.png)
+  <img width="450" src="./assets/reward.png" alt="reward.png"/>
 
 **action_space 的空间：**
 

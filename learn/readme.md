@@ -8,7 +8,9 @@ python ./data.py
 
 数据保存在 `./data_file` 文件夹中
 
-数据分为训练状态空间和测试状态空间，默认拆分方式为：![data_split.png](../assets/data_split.png)
+数据分为训练状态空间和测试状态空间，默认拆分方式为：
+
+<img width="550" src="../assets/data_split.png" alt="data_split.png"/>
 
 ## 训练
 
