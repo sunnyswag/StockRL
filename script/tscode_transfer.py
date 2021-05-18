@@ -26,7 +26,7 @@ def transfer(
     transferd.append(str(file_name_sub) + " = [") 
 
     read_dir = os.path.join(txt_dir, file_name)
-    write_dir = os.path.join(transfer_dir, file_name_sub + "_Transferred.txt")
+    write_dir = os.path.join(transfer_dir, file_name_sub + "_transferred.txt")
     
     with open(read_dir, "r") as f:
         for line in f.readlines():
@@ -48,8 +48,8 @@ def transfer(
         f.write(transferd[-1] + "]")
 
 if __name__ == "__main__":
-    txt_dir = "Index_TXT"
-    txt_transfer_dir = txt_dir + "_Transfer"
+    txt_dir = "index_txt"
+    txt_transfer_dir = txt_dir + "_transfer"
 
     creat_dir(txt_transfer_dir)
 
