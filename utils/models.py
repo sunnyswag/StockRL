@@ -12,7 +12,7 @@ from stable_baselines3.common.noise import NormalActionNoise, OrnsteinUhlenbeckA
 
 from utils import config
 from utils.preprocessors import split_data
-from utils.env import Stock_Trading_Env
+from utils.env import StockLearningEnv
 
 MODELS = {"a2c": A2C, "ddpg": DDPG, "td3": TD3, "sac": SAC, "ppo": PPO}
 MODEL_KWARGS = {x: config.__dict__["{}_PARAMS".format(x.upper())] for x in MODELS.keys()}
@@ -125,7 +125,7 @@ if __name__ == "__main__":
     }
 
     # 测试环境
-    e_train_gym = Stock_Trading_Env(df = df, **env_kwargs)
+    e_train_gym = StockLearningEnv(df = df, **env_kwargs)
 
     ### 测试一次
     # observation = e_train_gym.reset()

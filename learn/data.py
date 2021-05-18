@@ -5,7 +5,7 @@ from typing import List
 import pandas as pd
 
 sys.path.append("..")
-sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
+# sys.stdout = codecs.getwriter("utf-8")(sys.stdout.detach())
 
 from utils.pull_data import Pull_data
 from utils.preprocessors import FeatureEngineer, split_data
@@ -34,7 +34,7 @@ class Data(object):
     
     def pull_data(self) -> pd.DataFrame:
         """使用Tushare API下载股票数据并对数据进行预处理"""
-        data = Pull_data(self.stock_list, save_data=False).pull_data()
+        data = Pull_data(self.stock_list).pull_data()
 
         data.sort_values(['date', 'tic'], ignore_index=True).head()
         print("数据下载的时间区间为：{} 至 {}".format(config.Start_Date, config.End_Date))

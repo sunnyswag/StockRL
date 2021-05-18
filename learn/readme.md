@@ -33,7 +33,7 @@ nohup python -u ./trainer.py -m 'a2c' -tts 200000 >./nohup/A2C.log 2>&1 &
 在终端中输入
 
 ```shell
-python ./trader.py -m 'a2c'
+python -u ./trader.py -m 'a2c'
 ```
 
 **TIPS**：
