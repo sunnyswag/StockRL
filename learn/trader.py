@@ -15,7 +15,13 @@ from utils.models import DRL_Agent
 
 
 class Trader(object):
-    def __init__(self, model_name='a2c') -> None:
+    """用来测试训练结果的类
+
+    Attributes:
+        model_name: 强化学习的算法名称，用来调用指定的算法
+    """
+
+    def __init__(self, model_name: str = 'a2c') -> None:
         self.model_name = model_name
         self.train_dir = "train_file"
         self.data_dir = "data_file"
@@ -23,7 +29,7 @@ class Trader(object):
         self.create_trade_dir()
     
     def create_trade_dir(self) -> None:
-        """创建存储训练结果的文件夹"""
+        """创建存储交易结果的文件夹"""
         if not os.path.exists(self.trade_dir):
             os.makedirs(self.trade_dir)
             print("{} 文件夹创建成功!".format(self.trade_dir))
@@ -48,6 +54,7 @@ class Trader(object):
             .format(self.train_dir, self.model_name, self.model_name, self.train_dir))
     
     def get_trade_data(self):
+        """获取交易数据集"""
         trade_data_path = os.path.join(self.data_dir, "trade.csv")
         if not os.path.exists(trade_data_path):
             print("数据不存在，开始下载")
@@ -58,14 +65,15 @@ class Trader(object):
         
         return trade_data
 
-    def get_env(self, trade_data : pd.DataFrame) -> DummyVecEnv:
-        """分别返回训练环境和测试环境"""
+    def get_env(self, trade_data: pd.DataFrame) -> DummyVecEnv:
+        """获取交易环境"""
         e_trade_gym = StockTradingEnvRetreatpenalty(df = trade_data,
                                                     random_start = False,
                                                     **config.ENV_PARAMS)
         return e_trade_gym
     
     def get_model(self, agent):
+        """获取模型"""
         model = agent.get_model(self.model_name,  
                                 model_kwargs = config.__dict__["{}_PARAMS".format(self.model_name.upper())], 
                                 verbose = 0)
@@ -78,8 +86,8 @@ class Trader(object):
             return None
     
     def save_trade_result(self, 
-                    df_account_value : pd.DataFrame, 
-                    df_actions : pd.DataFrame) -> None:
+                    df_account_value: pd.DataFrame, 
+                    df_actions: pd.DataFrame) -> None:
         """保存交易后的数据"""
         account_value_path = os.path.join(self.trade_dir, "account_value_{}.csv".format(self.model_name))
         df_account_value.to_csv(account_value_path, index=False)
@@ -88,9 +96,8 @@ class Trader(object):
         df_actions.to_csv(actions_path, index=False)
     
     def print_trade_result(self, 
-                    df_account_value : pd.DataFrame, 
-                    df_actions : pd.DataFrame) -> None:
-        """打印交易后的数据"""
+                    df_account_value: pd.DataFrame, 
+                    df_actions: pd.DataFrame) -> None:
         print("回测的时间窗口：{} 至 {}".format(config.End_Trade_Date, config.End_Test_Date))
 
         print("查看日账户净值")

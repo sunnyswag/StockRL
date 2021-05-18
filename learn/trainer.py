@@ -15,8 +15,15 @@ from data import Data
 
 
 class Trainer(object):
-    def __init__(self, model_name='a2c' , 
-                        total_timesteps= 200000) -> None:
+    """用来训练的类
+
+    Attributes:
+        model_name: 强化学习的算法名称，用来调用指定的算法
+        total_timesteps: 总的训练步数
+    """
+
+    def __init__(self, model_name = 'a2c' , 
+                        total_timesteps = 200000) -> None:
         self.model_name = model_name
         self.total_timesteps = total_timesteps
         self.train_dir = "train_file"
@@ -33,7 +40,7 @@ class Trainer(object):
     
     def train(self) -> None:
         """开始训练"""
-        train_data, trade_data = self.get_train_data()
+        train_data, trade_data = self.get_data()
         env_train, env_trade = self.get_env(train_data, trade_data)
 
         agent = DRL_Agent(env = env_train)
@@ -49,7 +56,8 @@ class Trainer(object):
                     n_eval_episodes = 1)
         self.save_model(model)
     
-    def get_train_data(self):
+    def get_data(self):
+        """获取训练数据集和交易数据集"""
         train_data_path = os.path.join(self.data_dir, "train.csv")
         trade_data_path = os.path.join(self.data_dir, "trade.csv")
         if not (os.path.exists(train_data_path) or
@@ -64,9 +72,9 @@ class Trainer(object):
         return train_data, trade_data
 
     def get_env(self, 
-                train_data : pd.DataFrame, 
-                trade_data : pd.DataFrame) -> DummyVecEnv:
-        """分别返回训练环境和测试环境"""
+                train_data: pd.DataFrame, 
+                trade_data: pd.DataFrame) -> DummyVecEnv:
+        """分别返回训练环境和交易环境"""
         e_train_gym = StockTradingEnvRetreatpenalty(df = train_data,
                                                     random_start = True,
                                                     **config.ENV_PARAMS)
