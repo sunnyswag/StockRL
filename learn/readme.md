@@ -27,6 +27,7 @@ nohup python -u ./trainer.py -m 'a2c' -tts 200000 >./nohup/A2C.log 2>&1 &
 * 可运行 [./start_train.sh](./start_train.sh) 批量化操作
 * 运行日志保存在 `./nohup` 文件夹中
 * 运行完成后的模型保存在 `./train_file` 文件夹中
+* 推荐使用 [matpool](https://www.matpool.com/register) 下的 `FinRL` 镜像运行(需要的朋友可以填个邀请码`07NmxxrF2i9zWL6`）
 
 ## 回测
 
