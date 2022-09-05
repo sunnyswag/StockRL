@@ -287,6 +287,7 @@ class StockLearningEnv(gym.Env):
             reward = self.get_reward()
             self.account_information["reward"].append(reward)
 
+            self.date_index += 1 # 进入新的一天后再处理action
             transactions = self.get_transactions(actions)
             sells = -np.clip(transactions, -np.inf, 0)
             proceeds = np.dot(sells, self.closings)
@@ -311,7 +312,7 @@ class StockLearningEnv(gym.Env):
             assert (spend + costs) <= coh
             coh = coh - spend - costs
             holdings_updated = self.holdings + transactions
-            self.date_index += 1
+            
             state = (
                 [coh] + list(holdings_updated) + self.get_date_vector(self.date_index)
             )
