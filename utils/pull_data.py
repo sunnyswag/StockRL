@@ -56,8 +56,7 @@ class Pull_data():
                 else:
                     data_tmp = self.pro.index_daily(ts_code=ticker, adj='qfq', 
                                                     start_date=self.start_date, end_date=self.end_date)
-                data_tmp = data_tmp.set_index("trade_date", drop=True) # 将 trade_date 列设为索引
-                data_df = data_df.append(data_tmp)
+                data_df = pd.concat([data_df, data_tmp], ignore_index=True)
             except:
                 print("tushare 积分不足或其他异常情况, 请自行检查, 3s 后重试")
                 time.sleep(3)
@@ -65,8 +64,8 @@ class Pull_data():
 
         # 删除一些列并更改列名
         data_df = data_df.reset_index()
-        data_df = data_df.drop(["pre_close", "change", "pct_chg", "amount"], axis = 1)
-        data_df.columns = ["date", "tic", "open", "high", "low", "close", "volume"]
+        data_df = data_df.drop(["index", "pre_close", "change", "pct_chg", "amount"], axis = 1)
+        data_df.columns = ["tic", "date", "open", "high", "low", "close", "volume"]
 
         # 更改 date 列数据格式, 添加 day 列(星期一为 0), 再将格式改回成 str
         data_df["date"] = data_df.date.apply(lambda x: datetime.strptime(x[:4] + '-' + x[4:6] + '-' + x[6:], "%Y-%m-%d"))

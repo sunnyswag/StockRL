@@ -51,7 +51,7 @@ class FeatureEngineer():
                 tmp_df = pd.DataFrame(stock[stock.tic == ticker][indicator])
                 tmp_df['tic'] = ticker
                 tmp_df['date'] = df[df.tic == ticker]['date'].to_list()
-                indicator_df = indicator_df.append(tmp_df, ignore_index = True)
+                indicator_df = pd.concat([indicator_df, tmp_df], ignore_index = True)
             df = df.merge(indicator_df[['tic', 'date', indicator]], on=['tic', 'date'], how='left')
         df = df.sort_values(by=['date', 'tic'])
 
