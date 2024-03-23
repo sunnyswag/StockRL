@@ -1,14 +1,14 @@
 # 使用 Tushare API 下载文件时所需要用到的 tocken
 Tushare_Tocken = "c576df5b626df4f37c30bae84520d70c7945a394d7ee274ef2685444"
 
-# 数据开始下载和截止下载的日期
+# 从 Tushare 下载数据的区间
 Start_Date = '20090101'
-End_Date = '20210101'
+End_Date = '20240101'
 
-# 日期的另一种形式
+# 按照日期拆分数据集
 Start_Trade_Date = "2009-01-01"
-End_Trade_Date = "2019-01-01"
-End_Test_Date = "2021-01-01"
+End_Trade_Date = "2023-01-01"
+End_Test_Date = "2024-01-01"
 
 # 技术指标列表
 TECHNICAL_INDICATORS_LIST = [

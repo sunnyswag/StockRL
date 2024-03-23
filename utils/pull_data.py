@@ -59,7 +59,7 @@ class Pull_data():
                 data_tmp = data_tmp.set_index("trade_date", drop=True) # 将 trade_date 列设为索引
                 data_df = data_df.append(data_tmp)
             except:
-                print("休息 3s")
+                print("tushare 积分不足或其他异常情况, 请自行检查, 3s 后重试")
                 time.sleep(3)
         print("   --- 下载完成 ----")
 

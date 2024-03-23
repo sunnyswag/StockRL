@@ -26,10 +26,12 @@
 
 ```shell
 git clone https://github.com/sunnyswag/RL_in_Stock.git
-git pip install -r requirements.txt
+pip install -r requirements.txt
 ```
 
 进入 [./learn](./learn) 文件夹查看详细步骤
+
+修改 [config.py](./utils/config.py) 中的相关参数，如：Tushare_Tocken、数据的开始和结束日期等
 
 ## 环境设计思路
 
